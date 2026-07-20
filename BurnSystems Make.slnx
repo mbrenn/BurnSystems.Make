@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="BSMake.Library/BSMake.Library.csproj" />
+  <Project Path="BSMake/BSMake.csproj" />
+</Solution>
