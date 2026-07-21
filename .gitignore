@@ -5,3 +5,6 @@ riderModule.iml
 /_ReSharper.Caches/
 vcs.xml
 indexLayout.xml
+workspace.xml
+projectSettingsUpdater.xml
+.idea/

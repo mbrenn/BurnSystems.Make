@@ -1,0 +1,161 @@
+= BSMake
+
+== Use Case
+
+The build tool shall support the following use case: 
+
+* As a developer of an application project, I would like to be able to configure the build process of a bigger, but not too complex project. 
+* As input, we have a solution consisting of many many source files and projects
+* As an output, we have the built result which can be used.
+
+That build tool shall extend the Microsoft Build (MS Build) process for project-specific build activities which are not originally integrated into MS Build. This includes call of manual tools, TypeScript integration, other NodeJS process calls.
+
+== Requirements
+
+* The build process shall run on Windows and Linux
+* The build process shall support C#, TypeScript and other Project Types.
+* The build process is will integrated with MS Build.
+** BSMake shall be callable on its own (and does not call MS Build).
+** BSMake can be called from MSBuild to get advantage by all the MSBuild Features (e.g. incremental build, build dependency tree, etc)
+* The configuration file shall be written in C# itself. 
+* The build process shall only execute steps in case the corresponding source files have been modified. This avoids a full recompilation and is called 'incremental build'.
+* The build process does not require a compilation step upon each build. It checks whether the configuration file has changed and will only perform the compilation in case it has been altered. 
+* The build process supports project-specific compilations which can be called individually. This means that every project can have its own build configuration and there is no need to integrate everything on solution-level. 
+* The solution level can include its own build process which integrates all project-level builds. This can be done hierarchically. 
+** The solution-level does not define the order and priority of build steps explicitly since it calls MS Build on Solution (.slnx). The MS Build process there already knows the right order.
+* The editor of Rider or Visual Studio shall support syntax-highlighting of the build files. 
+* The build process is required to be integrated into 'dotnet tool' to allow easy installation. 
+* The build configuration files do not interfere with the project files and may not be compiled into the project files themselves
+* The outputs or intermediate files of the build process are consolidated into one directory per project. 
+* The build process shall support different Configuration contexts (e.g. Debug / Release)
+* All dynamically created artefacts of bsmake shall be cleanable by a simple call, so the next build process does not incldue any cached artefacts.  
+
+=== Out of scope
+
+* The build process shall not recreate the working C#/.Net build process of MS Build.
+* The build process shall not include a testing framework but may call one. Also test result evaluation shall not be part of the build process.
+
+== Solution
+
+We create a tool called 'bsmake'.
+
+The following topics are required to be clarified: 
+
+* [x] How does an integration on solution-level work?
+** [x] How can the solution configuration be stored? --> <<configuration-of-solution>> 
+** [x] How can the solution level call MSBuild for the project builds? 
+** [x] How is the solution level built and where is the result of the compilation of the configuration stored in a way that it does not disturb the solution and is hidden in the .gitignore? 
+** [x] How can MSBuild on solution-level call bsmake before each project is compiled? Is there a method to call out of an .slnx file or does BSMake to be called directly which then calls MSBuild? -> <<call-of-bsmake>>   
+* [x] How does the integration on project-level work? 
+** [x] Where is the project configuration stored? How is it ensured that the syntax highlighting works?
+** [x] How can MSBuild on project-level call bsmake? 
+** [x] How is it ensured that the compiled project build configuration is hidden in the .gitignore? 
+* [x] How can bsmake be integrated in 'dotnet tool'? -> <<bsmake-in-dotnet-tool>>
+* [x] How is a new project file to be integrated into an existing MSBuild project? -> Description is needed and to be created
+
+=== Development plan
+
+* [x] Create a library solution (bsmake itself)
+* [x] Create a dummy project solution with two projects (.dll + .exe)
+* [ ] Add the '.bsmake'-directories in which the 'build.cs' is stored
+* [ ] Try to figure out how these files are avoided to be compiled inside the host projects.
+* [ ] Try to figure out how the slimmest solution could look like for the _build/Build.cs configuration
+* [ ] Implement the library solution, 
+** [ ] that a simple call of bsmake on solution-level calls MSBuild on the solution
+** [ ] that bsmake is called by the Project compilation of MSBuild
+* [ ] Describe the steps to activate bsmake for a solution
+* [ ] Describe the steps to activate bsmake for a project
+
+[[call-of-bsmake]]
+=== Call of BSMake
+
+We use the method of 'Directory.Build.targets' to call bsmake upon each Project Configuration.
+
+* BSMake checks if the project build process is defined.
+** In case of yes: Check, if a compilation is needed and do it
+** In case of no: Just skip it
+
+In case BSMake needs to be called independent of any project on solution-level, we have to call it explicitly and bsmake starts to call msbuild for the full solution build. 
+
+==== Commandline convention
+
+ bsmake [verb] [Target]* --Configuration=key=value,key=value
+
+Allowed verbs: 
+
+* build: Just performs the compilation
+* clean: Just cleans everything
+
+Targets are not yet used
+
+Configuration describes a chain of configuration settings. 
+
+[[configuration-of-solution]]
+=== Configuration of solution
+
+At level of .slnx, a directory '.bsmake' is to be created.
+* That one includes the necessary files to configure the build process on solution-level. 
+
+In case BSMake is called and the files are not existing, MSBuild is directly be called. Here, we use the Commandline calls and we don't use the MSBuild APIs.  
+
+The compiled output is stored under 'bin' according the standard .Net Procedures in that folder.
+
+The standard .gitignore file, ignoring bin and obj should be sufficient to avoid that the intermediate files are included.
+
+[[configuration-of-project]]
+=== Configuration of project
+
+At level of .csproj, a directory '.bsmake' is to be created
+* That one includes the necessary files to configure the build process on solution-level. 
+
+In case BSMake is called and that folder is not existing, the BSMake call is exited. 
+
+In case the folder is existing, we perform the necessary steps to execute the build configuration. 
+
+[[bsmake-in-dotnet-tool]]
+=== Integration in .Net Tool
+==== Upload
+
+The library projects needs to contain a NuGet Configuration which enables the upload to the NuGet infrastructure.
+
+The file BSMake.csproj needs to be extended: 
+
+ <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>bsmake</ToolCommandName>
+    <PackageId>BSMake</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Martin Brenn</Authors>
+    <PackageOutputPath>./nupkg</PackageOutputPath>
+  </PropertyGroup>
+ </Project>
+
+Packaging via
+
+ dotnet pack -c Release
+
+Local Testing via
+
+ dotnet tool install \
+ --global \
+ --add-source ./nupkg \
+ BSMake
+
+ bsmake build
+
+Publishing via
+
+ dotnet nuget push nupkg/BSMake.1.0.0.nupkg \
+ --api-key YOUR_KEY \
+ --source https://api.nuget.org/v3/index.json
+
+==== Download
+
+Download via
+
+ dotnet tool install -g BSMake
+
+Call via
+
+ bsmake build
