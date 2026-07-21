@@ -1,0 +1,27 @@
+= BurnSystems Make
+
+== Use
+
+To use bsmake, call 'bsmake [verb]'.
+
+The following verbs are supported: 
+
+* clean: Cleans the current folder
+* build: Builds the folder
+
+In case bsmake is called, the current directory is evaluated for the following options:
+
+. Directory contains an '.sln' or 'slnx' file -> MS Build is called for that directory. 
+
+== Project Design
+
+The repository consists of two solutions: 
+
+* Tool: Contains the actual executable, its library and testing. This describes the actual BurnSystems Make deliverable
+* Example: Just an example of how to integrate it. It is also used for testing purposes.
+
+=== Tool Solution
+
+* Project 'BSMake' contains the parsing for the command line and immediately calls the library
+* Project 'BSMake.Library' contains all required logic
+* Project 'BSMake.Test' contains the testing infrastructure. It also used the Example library.

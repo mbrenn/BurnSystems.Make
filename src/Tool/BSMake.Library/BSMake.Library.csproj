@@ -6,4 +6,9 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <PackageReference Include="BurnSystems.CommandLine" Version="1.2.0" />
+      <PackageReference Include="BurnSystems" Version="1.2.0" />
+    </ItemGroup>
+
 </Project>
