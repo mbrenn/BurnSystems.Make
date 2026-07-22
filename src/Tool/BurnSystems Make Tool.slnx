@@ -1,5 +1,5 @@
 <Solution>
-  <Project Path="BSMake.Library/BSMake.Library.csproj" />
-  <Project Path="BSMake.Test/BSMake.Test.csproj" />
   <Project Path="BSMake/BSMake.csproj" />
+  <Project Path="BurnSystems.Make.Test/BurnSystems.Make.Test.csproj" />
+  <Project Path="BurnSystems.Make/BurnSystems.Make.csproj" />
 </Solution>

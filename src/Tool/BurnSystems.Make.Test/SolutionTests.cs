@@ -18,20 +18,20 @@ public class SolutionTests
         // Ensure that solution file is existing
         Assert.True(File.Exists("BurnSystems Make Example.slnx"), "Solution file does not exist.");
         
-        // Ok, we may start the solution building
-        var commandLineArguments = new CommandLineArguments
-        {
-            Verb = "build"
-        };
-        
         // Remove the ".\Example.Executable\bin\Debug\net10.0\Example.Executable.exe", if existing
         if (File.Exists(BinaryPath))
         {
             File.Delete(BinaryPath);
         }
         
-        var logic = new Logic(commandLineArguments);
-        await logic.Execute();
+        // Ok, we may start the solution building
+        var commandLineArguments = new CommandLineArguments
+        {
+            Verb = "build"
+        };
+        
+        await new Logic(commandLineArguments).Execute();
+        
         // Check that a building has occured
         Assert.True(InMemoryDatabaseProvider.TheOne.Messages.Any(x => x.LogMessage.Message.Contains("Building started")), "No building occured.");
         Assert.True(InMemoryDatabaseProvider.TheOne.Messages.Any(x => x.LogMessage.Message.Contains("Building finished")), "No finishing of building has occured.");
@@ -40,6 +40,30 @@ public class SolutionTests
         
         // Cleaning up
         helper.RestoreWorkingDirectory();
+    }
+
+    [Test]
+    public async Task TestCallOfSolutionBuildFile()
+    {
+        var helper = new Helper();
+        helper.StartInExampleDirectory();
+
+        var outputTestFile = ".bsmake/output.txt";
+        if (File.Exists(outputTestFile))
+        {
+            File.Delete(outputTestFile);
+        }
+        
+        
+        // Ok, we may start the solution building
+        var commandLineArguments = new CommandLineArguments
+        {
+            Verb = "build"
+        };
+        
+        await new Logic(commandLineArguments).Execute();
+    
+        Assert.That(File.Exists(outputTestFile));
     }
     
     [Test]
@@ -50,18 +74,18 @@ public class SolutionTests
         
         // Ensure that solution file is existing
         Assert.True(File.Exists("BurnSystems Make Example.slnx"), "Solution file does not exist.");
-        
-        // Ok, we may start the solution cleaning
-        var commandLineArguments = new CommandLineArguments
-        {
-            Verb = "clean"
-        };
 
         if (!File.Exists(BinaryPath))
         {
             await File.WriteAllTextAsync(BinaryPath, "I am a binary file");
         }
         
+        
+        // Ok, we may start the solution cleaning
+        var commandLineArguments = new CommandLineArguments
+        {
+            Verb = "clean"
+        };
         var logic = new Logic(commandLineArguments);
         await logic.Execute();
         

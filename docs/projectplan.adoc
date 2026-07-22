@@ -28,7 +28,7 @@ That build tool shall extend the Microsoft Build (MS Build) process for project-
 * The build configuration files do not interfere with the project files and may not be compiled into the project files themselves
 * The outputs or intermediate files of the build process are consolidated into one directory per project. 
 * The build process shall support different Configuration contexts (e.g. Debug / Release)
-* All dynamically created artefacts of bsmake shall be cleanable by a simple call, so the next build process does not incldue any cached artefacts.  
+* All dynamically created artifacts of bsmake shall be cleanable by a simple call, so the next build process does not incldue any cached artifacts.  
 
 === Out of scope
 
@@ -57,7 +57,9 @@ The following topics are required to be clarified:
 
 * [x] Create a library solution (bsmake itself)
 * [x] Create a dummy project solution with two projects (.dll + .exe)
-* [ ] Add the '.bsmake'-directories in which the 'build.cs' is stored
+* [ ] Add the '.bsmake'-directories in which the 'build.cs' is stored on solution-level. It shall just contain a Console-Writing output and the creation of an intermediate file called 'readme.txt' with just a simple file
+* [ ] Implement check is a .bsmake-directory exists on solution-level
+* [ ] If yes, perform a call of msbuild only if the created binary is older than the last modification date of build.cs. 
 * [ ] Try to figure out how these files are avoided to be compiled inside the host projects.
 * [ ] Try to figure out how the slimmest solution could look like for the _build/Build.cs configuration
 * [ ] Implement the library solution, 
@@ -79,7 +81,7 @@ In case BSMake needs to be called independent of any project on solution-level, 
 
 ==== Commandline convention
 
- bsmake [verb] [Target]* --Configuration=key=value,key=value
+ bsmake [verb] [Target]? --Configuration=key=value,key=value
 
 Allowed verbs: 
 
@@ -111,6 +113,26 @@ At level of .csproj, a directory '.bsmake' is to be created
 In case BSMake is called and that folder is not existing, the BSMake call is exited. 
 
 In case the folder is existing, we perform the necessary steps to execute the build configuration. 
+
+[[buildproject]]
+=== The Buildproject
+
+The build project resides in the .bsmake subfolder relative to the folder or to the solution file. 
+
+It consists of a .csproj-file, describing the project and the corresponding sourcefiles. At the moment, no 
+'.cs'-file-only solution is supported. 
+
+The project can be an .exe project or a .dll project. 
+
+=== The .exe-Build Project
+
+Here, the project is compiled and called via 'Start Process' during the make project. The interface to configure and parameterize the project is very limited due to out-of-process execution. Advantage is to have a very simplistic protocol. 
+
+=== The .dll-Build Project
+
+Here, the project is compiled and the corresponding .dll is dynamically loaded by the .bsmake process. The entrypoint of the project is defined by a specific interface which also allows direct access to configuration and parameterization of the build. 
+
+The interface will be called 'BurnSystems.Make.IBuildAgent'.
 
 [[bsmake-in-dotnet-tool]]
 === Integration in .Net Tool

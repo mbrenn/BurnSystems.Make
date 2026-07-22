@@ -25,3 +25,4 @@ The repository consists of two solutions:
 * Project 'BSMake' contains the parsing for the command line and immediately calls the library
 * Project 'BSMake.Library' contains all required logic
 * Project 'BSMake.Test' contains the testing infrastructure. It also used the Example library.
+

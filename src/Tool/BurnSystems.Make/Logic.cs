@@ -46,9 +46,14 @@ public class Logic
         var solutionFile = CheckThatSolutionFileIsExisting();
         logger.Info($"Building {solutionFile}");
         
-        var cleanProcess = Process.Start("dotnet", "build");
-        await cleanProcess.WaitForExitAsync();
-        if (cleanProcess.ExitCode == -1)
+        // Try to execute the .bsmake process
+        var buildAgentLogic = new BuildAgentLogic(CommandLineArguments);
+        await buildAgentLogic.ExecuteBuildAgent();
+        
+        // After that is done, execute the dotnet build command
+        var buildProcess = Process.Start("dotnet", "build");
+        await buildProcess.WaitForExitAsync();
+        if (buildProcess.ExitCode == -1)
         {
             logger.Error("Building failed");
             throw new InvalidOperationException("Building failed");

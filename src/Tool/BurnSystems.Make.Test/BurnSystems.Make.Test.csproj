@@ -16,7 +16,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\BSMake.Library\BSMake.Library.csproj" />
+      <ProjectReference Include="..\BurnSystems.Make\BurnSystems.Make.csproj" />
     </ItemGroup>
 
 </Project>
