@@ -43,17 +43,16 @@ public class SolutionTests
     }
 
     [Test]
-    public async Task TestCallOfSolutionBuildFile()
+    public async Task TestCallOfSolutionBuildAgent()
     {
         var helper = new Helper();
         helper.StartInExampleDirectory();
 
-        var outputTestFile = ".bsmake/output.txt";
+        var outputTestFile = "output.txt";
         if (File.Exists(outputTestFile))
         {
             File.Delete(outputTestFile);
         }
-        
         
         // Ok, we may start the solution building
         var commandLineArguments = new CommandLineArguments
@@ -64,6 +63,7 @@ public class SolutionTests
         await new Logic(commandLineArguments).Execute();
     
         Assert.That(File.Exists(outputTestFile));
+        File.Delete(outputTestFile);
     }
     
     [Test]

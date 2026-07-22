@@ -126,15 +126,15 @@ public class BuildAgentLogic
         if (Directory.Exists("./.bsmake/bin"))
         {
             var exeFiles = Directory.GetFiles("./.bsmake/bin/", "*.exe", SearchOption.AllDirectories);
-            var earliestExeFile = exeFiles.Select(File.GetLastWriteTime).Min();
+            var earliestExeFile = exeFiles.Length > 0 ? exeFiles.Select(File.GetLastWriteTime).Min() : DateTime.MinValue;
             Logger.Info($"Earliest .exe file is {earliestExeFile}");
 
             // Figures out latest age of all .cs files stored recursively
             var csFiles = Directory.GetFiles("./.bsmake/", "*.cs", SearchOption.AllDirectories);
-            var latestCsFile = csFiles.Select(File.GetLastWriteTime).Max();
+            var latestCsFile =  csFiles.Length > 0 ? csFiles.Select(File.GetLastWriteTime).Max() : DateTime.MaxValue;
             Logger.Info($"Latest .cs file is {latestCsFile}");
 
-            if (earliestExeFile >= latestCsFile)
+            if (earliestExeFile >= latestCsFile && earliestExeFile != DateTime.MinValue)
             {
                 Logger.Info("Build agent is up to date, skipping");
                 return;
