@@ -8,3 +8,4 @@ indexLayout.xml
 workspace.xml
 projectSettingsUpdater.xml
 .idea/
+*DotSetting*
