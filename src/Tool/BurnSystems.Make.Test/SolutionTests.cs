@@ -78,11 +78,18 @@ public class SolutionTests
         
         // Ensure that solution file is existing
         Assert.True(File.Exists("BurnSystems Make Example.slnx"), "Solution file does not exist.");
-
-        if (!File.Exists(BinaryPath))
+        
+        // Ok, we may start the solution cleaning
+        var commandLineArgumentsPrepare = new CommandLineArguments
         {
-            await File.WriteAllTextAsync(BinaryPath, "I am a binary file");
-        }
+            Verb = "build"
+        };
+        
+        var logicPrepare = new Logic(commandLineArgumentsPrepare);
+        await logicPrepare.Execute();
+        
+        // File is existing ==> Successful build
+        Assert.That(File.Exists(BinaryPath));
         
         // Ok, we may start the solution cleaning
         var commandLineArguments = new CommandLineArguments
@@ -97,6 +104,7 @@ public class SolutionTests
         Assert.True(InMemoryDatabaseProvider.TheOne.Messages.Any(x => x.LogMessage.Message.Contains("Cleaning started")), "No cleaning occured.");
         Assert.True(InMemoryDatabaseProvider.TheOne.Messages.Any(x => x.LogMessage.Message.Contains("Cleaning finished")), "No finishing of cleaning has occured.");
         
+        // We need to check that the build directory for the .bsmake/solution is also removed  
         Assert.That(!File.Exists(BinaryPath));
         
         // Cleaning up
