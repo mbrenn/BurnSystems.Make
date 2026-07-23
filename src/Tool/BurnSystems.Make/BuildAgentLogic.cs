@@ -10,8 +10,25 @@ namespace BSMake.Library;
 /// </summary>
 public enum BuildAgentExecutionResult
 {
-    SuccessNoBuildAgentExisting, 
+    SuccessNoBuildAgentExisting,
     SuccessBuildAgentExecuted
+}
+
+/// <summary>
+/// Stores the information about the created build agent. 
+/// </summary>
+public class BuildAgentInformation
+{
+    /// <summary>
+    /// Defines the type of the build agent
+    /// </summary>
+    public BuildAgentType AgentType { get; init; }
+
+    /// <summary>
+    /// Stores the name of the output assembly.
+    /// This information is used to call the right assembly
+    /// </summary>
+    public string OutputAssemblyName { get; init; } = string.Empty;
 }
 
 /// <summary>
@@ -53,10 +70,10 @@ public class BuildAgentLogic
     /// </summary>
     public async Task<BuildAgentExecutionResult> ExecuteBuildAgent()
     {
-        var typeOfBuildAgent = GetTypeOfBuildAgent();
+        var typeOfBuildAgent = GetInformationOfBuildAgent();
         Logger.Info($"Type of build agent is {typeOfBuildAgent}");
         
-        switch (typeOfBuildAgent)
+        switch (typeOfBuildAgent.AgentType)
         {
             case BuildAgentType.NotExisting:
                 return BuildAgentExecutionResult.SuccessNoBuildAgentExisting;
@@ -65,7 +82,7 @@ public class BuildAgentLogic
             case BuildAgentType.Executable:
                 // We have determined that we have an executable build agent
                 await BuildBuildAgent();
-                await TriggerBuildAgentAsExecutable();
+                await TriggerBuildAgentAsExecutable(typeOfBuildAgent);
                 return BuildAgentExecutionResult.SuccessBuildAgentExecuted;
             default:
                 throw new InvalidOperationException($"Unknown build agent type {typeOfBuildAgent}");
@@ -77,7 +94,7 @@ public class BuildAgentLogic
     /// is determined. If the build agent is existing, the type of the build agent itself is reported
     /// </summary>
     /// <returns></returns>
-    public BuildAgentType GetTypeOfBuildAgent()
+    public BuildAgentInformation GetInformationOfBuildAgent()
     {
         // Gets the .csproj file, if existing
         var projectPath = Path.Combine(Environment.CurrentDirectory, ".bsmake");
@@ -86,15 +103,18 @@ public class BuildAgentLogic
         switch (csProjs.Count)
         {
             case 0:
-                return BuildAgentType.NotExisting;
+                return new BuildAgentInformation
+                {
+                    AgentType = BuildAgentType.NotExisting
+                };
             case 1:
                 break;
             case 2:
                 throw new InvalidOperationException("Multiple .csproj files in .bsmake directory");
         }
-        
+
         var csProj = csProjs.Single();
-        
+
         // Ok, we have the csproj-file, now determine the project type
         var document = XDocument.Load(csProj);
         var outputType =
@@ -103,17 +123,37 @@ public class BuildAgentLogic
                 .Elements("OutputType")
                 .FirstOrDefault();
 
+        var outputNameNode =
+            document.Root?
+                .Elements("PropertyGroup")
+                .Elements("TargetName")
+                .FirstOrDefault();
+
+        var outputName = outputNameNode?.Value
+                         ?? Path.GetFileNameWithoutExtension(csProj);
+
         // Per default library
         if (outputType == null)
         {
-            return BuildAgentType.Library;
+            return new BuildAgentInformation
+            {
+                AgentType = BuildAgentType.NotExisting
+            };
         }
-        
+
         // Otherwise, evaluate
         return outputType.Value switch
         {
-            "Library" => BuildAgentType.Library,
-            "Exe" => BuildAgentType.Executable,
+            "Library" => new BuildAgentInformation
+            {
+                AgentType = BuildAgentType.Library,
+                OutputAssemblyName = outputName
+            },
+            "Exe" => new BuildAgentInformation
+            {
+                AgentType = BuildAgentType.Executable,
+                OutputAssemblyName = outputName
+            },
             _ => throw new InvalidOperationException($"Unknown output type: {outputType.Value}")
         };
     }
@@ -155,10 +195,24 @@ public class BuildAgentLogic
     /// <summary>
     /// Calls the build agent which is an executable
     /// </summary>
-    private async Task TriggerBuildAgentAsExecutable()
+    private async Task TriggerBuildAgentAsExecutable(BuildAgentInformation buildAgentInformation)
     {
         // Find .exe in bin directory
-        var exeFiles = Directory.GetFiles("./.bsmake/bin/", "*.exe", SearchOption.AllDirectories);
+        var exeFiles = 
+            Directory.GetFiles(
+                "./.bsmake/bin/",
+                buildAgentInformation.OutputAssemblyName,
+                SearchOption.AllDirectories);
+        
+        if (exeFiles.Length == 0)
+        {
+            exeFiles = 
+                Directory.GetFiles(
+                    "./.bsmake/bin/",
+                    buildAgentInformation.OutputAssemblyName + ".exe",
+                    SearchOption.AllDirectories);
+        }
+        
         switch (exeFiles.Length)
         {
             case 0: 

@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using BSMake.Library;
 using BurnSystems.Logging.Provider;
 using NUnit.Framework;
@@ -7,7 +8,10 @@ namespace BSMake.Tests;
 [TestFixture]
 public class SolutionTests
 {
-    private const string BinaryPath = ".\\Example.Executable\\bin\\Debug\\net10.0\\Example.Executable.exe";
+    private static readonly string BinaryPath =
+        RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? "Example.Executable/bin/Debug/net10.0/Example.Executable.exe"
+            : "Example.Executable/bin/Debug/net10.0/Example.Executable";
 
     [Test]
     public async Task TestBuildOfSolution()
@@ -80,12 +84,12 @@ public class SolutionTests
             await File.WriteAllTextAsync(BinaryPath, "I am a binary file");
         }
         
-        
         // Ok, we may start the solution cleaning
         var commandLineArguments = new CommandLineArguments
         {
             Verb = "clean"
         };
+        
         var logic = new Logic(commandLineArguments);
         await logic.Execute();
         

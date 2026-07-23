@@ -21,12 +21,18 @@ public class Helper
         }
         _storedDirectory = Environment.CurrentDirectory;
 
-        while (!Environment.CurrentDirectory.EndsWith("BurnSystems Make"))
+        var n = 0;
+        while (!Environment.CurrentDirectory.EndsWith("src"))
         {
             Environment.CurrentDirectory = Path.GetDirectoryName(Environment.CurrentDirectory) ?? Environment.CurrentDirectory;
+            n++;
+            if (n > 10)
+            {
+                throw new InvalidOperationException($"Something went wrong with recursion of: {_storedDirectory}");
+            }
         }
         
-        Environment.CurrentDirectory = Path.Combine(Environment.CurrentDirectory, "src/Example");
+        Environment.CurrentDirectory = Path.Combine(Environment.CurrentDirectory, "Example");
         
         // Initializes the Logger
         TheLog.ClearProviders(); 
