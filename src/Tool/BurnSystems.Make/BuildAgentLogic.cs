@@ -47,8 +47,18 @@ public enum BuildAgentType
 /// It takes care that the build agent is compiled or a cached version is used,
 /// it takes care to load the build agent and is responsible to evaluate and report potential failures.  
 /// </summary>
-public class BuildAgentLogic
+public class BuildAgentLogic(CommandLineArguments arguments)
 {
+    /// <summary>
+    /// Directory where the build agent files are stored.
+    /// </summary>
+    private const string BuildAgentDir = ".bsmake";
+
+    /// <summary>
+    /// Directory where the build agent binaries are stored.
+    /// </summary>
+    private static string BuildAgentDirBinary => Path.Combine(BuildAgentDir, "bin"); 
+    
     /// <summary>
     /// Stores the logger used to log messages
     /// </summary>
@@ -57,12 +67,7 @@ public class BuildAgentLogic
     /// <summary>
     /// Stores the commandlinearguments being used to describe the current configuration
     /// </summary>
-    private readonly CommandLineArguments _arguments;
-
-    public BuildAgentLogic(CommandLineArguments arguments)
-    {
-        _arguments = arguments;
-    }
+    private readonly CommandLineArguments _arguments = arguments;
 
     /// <summary>
     /// This is the main entry point which is called to start the full process from
@@ -97,7 +102,7 @@ public class BuildAgentLogic
     public BuildAgentInformation GetInformationOfBuildAgent()
     {
         // Gets the .csproj file, if existing
-        var projectPath = Path.Combine(Environment.CurrentDirectory, ".bsmake");
+        var projectPath = Path.Combine(Environment.CurrentDirectory, BuildAgentDir);
 
         var csProjs = Directory.EnumerateFiles(projectPath, "*.csproj").ToList();
         switch (csProjs.Count)
@@ -110,7 +115,7 @@ public class BuildAgentLogic
             case 1:
                 break;
             case 2:
-                throw new InvalidOperationException("Multiple .csproj files in .bsmake directory");
+                throw new InvalidOperationException($"Multiple .csproj files in {BuildAgentDir} directory");
         }
 
         var csProj = csProjs.Single();
@@ -163,14 +168,14 @@ public class BuildAgentLogic
         Logger.Info("Triggered building of agent");
 
         // Figures out age of the build agent itself
-        if (Directory.Exists("./.bsmake/bin"))
+        if (Directory.Exists(BuildAgentDirBinary))
         {
-            var exeFiles = Directory.GetFiles("./.bsmake/bin/", "*.exe", SearchOption.AllDirectories);
+            var exeFiles = Directory.GetFiles(BuildAgentDirBinary, "*.exe", SearchOption.AllDirectories);
             var earliestExeFile = exeFiles.Length > 0 ? exeFiles.Select(File.GetLastWriteTime).Min() : DateTime.MinValue;
             Logger.Info($"Earliest .exe file is {earliestExeFile}");
 
             // Figures out latest age of all .cs files stored recursively
-            var csFiles = Directory.GetFiles("./.bsmake/", "*.cs", SearchOption.AllDirectories);
+            var csFiles = Directory.GetFiles(BuildAgentDir, "*.cs", SearchOption.AllDirectories);
             var latestCsFile =  csFiles.Length > 0 ? csFiles.Select(File.GetLastWriteTime).Max() : DateTime.MaxValue;
             Logger.Info($"Latest .cs file is {latestCsFile}");
 
@@ -183,7 +188,7 @@ public class BuildAgentLogic
 
         Logger.Info("Build agent is outdated, rebuilding");
         var oldCurrentDirectory = Environment.CurrentDirectory;
-        Environment.CurrentDirectory = Path.Combine(Environment.CurrentDirectory, ".bsmake");
+        Environment.CurrentDirectory = Path.Combine(Environment.CurrentDirectory, BuildAgentDir);
 
         var process = Process.Start("dotnet", "build");
         await process.WaitForExitAsync();
@@ -200,7 +205,7 @@ public class BuildAgentLogic
         // Find .exe in bin directory
         var exeFiles = 
             Directory.GetFiles(
-                "./.bsmake/bin/",
+                BuildAgentDirBinary,
                 buildAgentInformation.OutputAssemblyName,
                 SearchOption.AllDirectories);
         
@@ -208,7 +213,7 @@ public class BuildAgentLogic
         {
             exeFiles = 
                 Directory.GetFiles(
-                    "./.bsmake/bin/",
+                    BuildAgentDirBinary,
                     buildAgentInformation.OutputAssemblyName + ".exe",
                     SearchOption.AllDirectories);
         }
