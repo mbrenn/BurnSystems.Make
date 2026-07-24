@@ -1,5 +1,4 @@
 <Solution>
-  <Project Path=".bsmake/Build.csproj" />
   <Project Path="Example.Executable/Example.Executable.csproj" />
   <Project Path="Example.Library/Example.Library.csproj" />
 </Solution>
