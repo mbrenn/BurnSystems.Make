@@ -95,6 +95,32 @@ public class BuildAgentLogic(CommandLineArguments arguments)
     }
 
     /// <summary>
+    /// Cleans the build agent 
+    /// </summary>
+    /// <returns>The result, if the action was successful</returns>
+    public async Task<BuildAgentExecutionResult> CleanBuildAgent()
+    {
+        var typeOfBuildAgent = GetInformationOfBuildAgent();
+        Logger.Info($"Type of build agent is {typeOfBuildAgent}");
+
+        switch (typeOfBuildAgent.AgentType)
+        {
+            case BuildAgentType.NotExisting:
+                return BuildAgentExecutionResult.SuccessNoBuildAgentExisting;
+            
+            case BuildAgentType.Library:
+                goto case BuildAgentType.Executable;
+                
+            case BuildAgentType.Executable:
+                await CleanBuildAgentAsExecutable();
+                return BuildAgentExecutionResult.SuccessBuildAgentExecuted;
+            default:
+                throw new InvalidOperationException($"Unknown build agent type {typeOfBuildAgent}");
+        }
+        
+    }
+
+    /// <summary>
     /// Checks, if the build agent is existing. Here, the existing of a .csproj-file within the
     /// is determined. If the build agent is existing, the type of the build agent itself is reported
     /// </summary>
@@ -232,5 +258,20 @@ public class BuildAgentLogic(CommandLineArguments arguments)
         var exeFile = exeFiles.Single();
         var process = Process.Start(exeFile);
         await process.WaitForExitAsync();
+    }
+
+    /// <summary>
+    /// Cleans the build agent by calling 'msbuild clean' directly in the build agent directory
+    /// </summary>
+    private async Task CleanBuildAgentAsExecutable()
+    {        
+        Logger.Info("Clean build agent in .bsmake directory");
+        var oldCurrentDirectory = Environment.CurrentDirectory;
+        Environment.CurrentDirectory = Path.Combine(Environment.CurrentDirectory, BuildAgentDir);
+
+        var process = Process.Start("dotnet", "clean");
+        await process.WaitForExitAsync();
+
+        Environment.CurrentDirectory = oldCurrentDirectory;
     }
 }

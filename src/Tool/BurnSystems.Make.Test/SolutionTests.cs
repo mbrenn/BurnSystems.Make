@@ -102,6 +102,7 @@ public class SolutionTests
         
         // Check that a cleaning event has occured
         Assert.True(InMemoryDatabaseProvider.TheOne.Messages.Any(x => x.LogMessage.Message.Contains("Cleaning started")), "No cleaning occured.");
+        Assert.True(InMemoryDatabaseProvider.TheOne.Messages.Any(x => x.LogMessage.Message.Contains("Clean build agent in .bsmake directory")), "No cleaning of project directory occured.");
         Assert.True(InMemoryDatabaseProvider.TheOne.Messages.Any(x => x.LogMessage.Message.Contains("Cleaning finished")), "No finishing of cleaning has occured.");
         
         // We need to check that the build directory for the .bsmake/solution is also removed  

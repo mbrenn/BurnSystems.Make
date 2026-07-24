@@ -42,7 +42,8 @@ public class Logic
 
     public async Task Build()
     {
-        logger.Info("Building started");
+        using var _ = new StopWatchLogger(logger, "BSMake Build");
+            
         var solutionFile = CheckThatSolutionFileIsExisting();
         logger.Info($"Building {solutionFile}");
         
@@ -64,10 +65,16 @@ public class Logic
 
     public async Task Clean()
     {
-        logger.Info("Cleaning started");
+        using var _ = new StopWatchLogger(logger, "BSMake clean");
+        
         var solutionFile = CheckThatSolutionFileIsExisting();
         logger.Info($"Cleaning {solutionFile}");
         
+        // Clean in project directory
+        var buildAgentLogic = new BuildAgentLogic(CommandLineArguments);
+        await buildAgentLogic.CleanBuildAgent();
+        
+        // Call the MSBuild clean routine
         var cleanProcess = Process.Start("dotnet", "clean");
         await cleanProcess.WaitForExitAsync();
         if (cleanProcess.ExitCode == -1)
