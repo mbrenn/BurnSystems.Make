@@ -220,7 +220,6 @@ public class BuildAgentLogic(CommandLineArguments arguments)
         await process.WaitForExitAsync();
 
         Environment.CurrentDirectory = oldCurrentDirectory;
-
     }
 
     /// <summary>
