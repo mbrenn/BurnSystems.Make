@@ -75,10 +75,10 @@ public class BuildAgentLogic(CommandLineArguments arguments)
     /// </summary>
     public async Task<BuildAgentExecutionResult> ExecuteBuildAgent()
     {
-        var typeOfBuildAgent = GetInformationOfBuildAgent();
-        Logger.Info($"Type of build agent is {typeOfBuildAgent}");
+        var buildAgentInformation = GetInformationOfBuildAgent();
+        Logger.Info($"Type of build agent is {buildAgentInformation}");
         
-        switch (typeOfBuildAgent.AgentType)
+        switch (buildAgentInformation.AgentType)
         {
             case BuildAgentType.NotExisting:
                 return BuildAgentExecutionResult.SuccessNoBuildAgentExisting;
@@ -86,11 +86,11 @@ public class BuildAgentLogic(CommandLineArguments arguments)
                 throw new InvalidOperationException("Library is currently not supported");
             case BuildAgentType.Executable:
                 // We have determined that we have an executable build agent
-                await BuildBuildAgent();
-                await TriggerBuildAgentAsExecutable(typeOfBuildAgent);
+                await BuildBuildAgent(buildAgentInformation);
+                await TriggerBuildAgentAsExecutable(buildAgentInformation);
                 return BuildAgentExecutionResult.SuccessBuildAgentExecuted;
             default:
-                throw new InvalidOperationException($"Unknown build agent type {typeOfBuildAgent}");
+                throw new InvalidOperationException($"Unknown build agent type {buildAgentInformation}");
         }
     }
 
@@ -189,14 +189,14 @@ public class BuildAgentLogic(CommandLineArguments arguments)
         };
     }
 
-    private async Task BuildBuildAgent()
+    private async Task BuildBuildAgent(BuildAgentInformation buildAgentInformation)
     {
         Logger.Info("Triggered building of agent");
 
         // Figures out age of the build agent itself
         if (Directory.Exists(BuildAgentDirBinary))
         {
-            var exeFiles = Directory.GetFiles(BuildAgentDirBinary, "*.exe", SearchOption.AllDirectories);
+            var exeFiles = Directory.GetFiles(BuildAgentDirBinary, buildAgentInformation.OutputAssemblyName, SearchOption.AllDirectories);
             var earliestExeFile = exeFiles.Length > 0 ? exeFiles.Select(File.GetLastWriteTime).Min() : DateTime.MinValue;
             Logger.Info($"Earliest .exe file is {earliestExeFile}");
 
