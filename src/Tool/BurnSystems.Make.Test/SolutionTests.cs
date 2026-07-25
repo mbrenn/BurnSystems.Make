@@ -37,8 +37,8 @@ public class SolutionTests
         await new Logic(commandLineArguments).Execute();
         
         // Check that a building has occured
-        Assert.True(InMemoryDatabaseProvider.TheOne.Messages.Any(x => x.LogMessage.Message.Contains("Building started")), "No building occured.");
-        Assert.True(InMemoryDatabaseProvider.TheOne.Messages.Any(x => x.LogMessage.Message.Contains("Building finished")), "No finishing of building has occured.");
+        Assert.True(InMemoryDatabaseProvider.TheOne.Messages.Any(x => x.LogMessage.Message.Contains("Start: BSMake Build")), "No building occured.");
+        Assert.True(InMemoryDatabaseProvider.TheOne.Messages.Any(x => x.LogMessage.Message.Contains("End  : BSMake Build")), "No finishing of building has occured.");
         
         Assert.That(File.Exists(BinaryPath));
         
@@ -101,9 +101,9 @@ public class SolutionTests
         await logic.Execute();
         
         // Check that a cleaning event has occured
-        Assert.True(InMemoryDatabaseProvider.TheOne.Messages.Any(x => x.LogMessage.Message.Contains("Cleaning started")), "No cleaning occured.");
+        Assert.True(InMemoryDatabaseProvider.TheOne.Messages.Any(x => x.LogMessage.Message.Contains("Start: BSMake clean")), "No cleaning occured.");
         Assert.True(InMemoryDatabaseProvider.TheOne.Messages.Any(x => x.LogMessage.Message.Contains("Clean build agent in .bsmake directory")), "No cleaning of project directory occured.");
-        Assert.True(InMemoryDatabaseProvider.TheOne.Messages.Any(x => x.LogMessage.Message.Contains("Cleaning finished")), "No finishing of cleaning has occured.");
+        Assert.True(InMemoryDatabaseProvider.TheOne.Messages.Any(x => x.LogMessage.Message.Contains("End  : BSMake clean")), "No finishing of cleaning has occured.");
         
         // We need to check that the build directory for the .bsmake/solution is also removed  
         Assert.That(!File.Exists(BinaryPath));
