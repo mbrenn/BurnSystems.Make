@@ -6,6 +6,13 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AssemblyName>bsmake</AssemblyName>
+        
+        <PackAsTool>true</PackAsTool>
+        <ToolCommandName>bsmake</ToolCommandName>   
+        <PackageId>BSMake</PackageId>
+        <Version>1.0.1</Version>
+        <Authors>Martin Brenn</Authors>
+        <PackageOutputPath>./nupkg</PackageOutputPath>
     </PropertyGroup>
 
     <ItemGroup>
