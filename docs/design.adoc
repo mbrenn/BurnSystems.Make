@@ -2,18 +2,105 @@
 
 == Use
 
-To use bsmake, call 'bsmake [verb]'.
+To use _BurnSystems.Make_, call 'bsmake [verb]'.
+
+ bsmake [verb]
 
 The following verbs are supported: 
 
 * clean: Cleans the current folder
 * build: Builds the folder
 
-In case bsmake is called, the current directory is evaluated for the following options:
+BurnSystems.Make supports the execution within a solution-context and a project-context.
+The solution-context is automatically figured out by having a .sln or .slnx-file within the current directory. 
 
-. Directory contains an '.sln' or 'slnx' file -> MS Build is called for that directory. 
+=== Solution-Context
 
-== Project Design
+Within solution-context, it is assumed that_BurnSystems.Make_ calls MSBuild. Due to technical limitation of the Solution Files (.sln[x]), an external tool cannot be called from the Solution File.
+
+That means, it is assumed that _BurnSystems.Make_ gets called by the user or build pipeline. It will then perform the following steps: 
+
+. Check, if a Build Agent is specified for the Solution and executes it. (<<build-and-call-of-the-build-agent>>)
+. Execute 'dotnet build' to start building of the included projects.
+
+=== Project-Context
+
+Within project-context, it is expected that _BurnSystems.Make_ is called before target 'CoreCompile' by MSBuild.
+
+This can be easily achieved by adding the following target to the Project-Configuration:
+
+ <Target Name="RunBSMake" BeforeTargets="CoreCompile">
+   <Exec Command="bsmake build $(MSBuildProjectDirectory)" />
+ </Target>
+
+Potential entry points are the specific .csproj-files or if you would like to get_BurnSystems.Make_ in project-context called per each project, you can add it to the 'Directory.Build.Targets' on Solution-Level.
+
+ <Project>
+   <Target Name="RunBSMake" BeforeTargets="CoreCompile">
+     <Exec Command="bsmake build $(MSBuildProjectDirectory)" />
+   </Target>
+ </Project>
+
+If_BurnSystems.Make_ gets called in project-context, it is assumed that it gets called by a build tool. So, only the following step is performed.
+
+. Check, if a Build Agent is specified for the Solution and executes it. (<<build-and-call-of-the-build-agent>>)
+
+=== Summary
+
+Let's assume the following solution (Directories in _italic_)
+
+* _Example_
+** Example.slnx
+** _Example_Library_
+*** Example_Library.csproj
+** _Example_Executable_
+*** Example_Executable.csproj
+
+This can be enriched to a full _BurnSystems.Make_ project by adding the following files. There is no need to add a .bsmake project for every project. In that example, we skip it for Example_Executable. 
+
+* _Example_
+** Example.slnx
+** Directory.Build.targets
+** _.bsmake_
+*** Build.csproj
+** _Example_Library_
+*** _.bsmake_
+**** Build.csproj
+*** Example_Library.csproj
+**** Build.csproj
+*** Example_Executable.csproj
+
+The calls between_BurnSystems.Make_ will be performed as the following: 
+
+* 'Example': User/Pipeline calls bsmake (not MSBuild!)
+** 'Example': bsmake identifies Build Agents, builds it and executes it
+** 'Example': bsmake calls msbuild for Example.slnx
+** 'Example': MSBuild identifies projects and builds them
+*** 'Example Library': MSBuild starts bsmake via Directory.Build.targets before compiling
+**** 'Example Library': bsmake identifies Build Agents, builds it and executes it
+*** 'Example Library': MSBuild continues to build the full c# project
+*** 'Example Executable': MSBuild starts bsmake via Directory.Build.targets before compiling
+**** 'Example Executable': bsmake identifies that no build agent is existing and skips itself
+*** 'Example Executable': MSBuild continues to build the full c# project
+
+This example is also available under https://github.com/mbrenn/BurnSystems.Make/tree/main/src/Example
+
+Project
+[[build-and-call-of-the-build-agent]]
+=== Build and call of the Build Agent
+
+In case_BurnSystems.Make_ is called, it looks for a .bsmake sub-directory and determines the Buildagent type. 
+
+* In case, it is not existing: Nothing is performed -> No specific Buildagent required
+* In case a .csproj file exists, a build agent is assumed. Currently, only 'Executable'-Buildagents are supported which are built and started
+
+The building of the Buildagent via MS Build will only be triggered in case the .cs-files within that folder have a more recent state than the executable. If the executable is up-to-date, no build is executed. 
+
+After the executable is available, it is being called by _BurnSystems.Make_. The working directory is the same as where the solution-file or project-file exists. In case the Buildagent wants to write a file, it can just call File.WriteAllText().
+
+The Build Agents do not necessarily be part of the owning solution as_BurnSystems.Make_ will identify the existing via the files. 
+
+== Realization Design
 
 The repository consists of two solutions: 
 

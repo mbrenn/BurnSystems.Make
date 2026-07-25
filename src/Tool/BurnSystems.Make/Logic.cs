@@ -45,22 +45,40 @@ public class Logic
         using var _ = new StopWatchLogger(logger, "BSMake Build");
             
         var solutionFile = CheckThatSolutionFileIsExisting();
-        logger.Info($"Building {solutionFile}");
-        
-        // Try to execute the .bsmake process
-        var buildAgentLogic = new BuildAgentLogic(CommandLineArguments);
-        await buildAgentLogic.ExecuteBuildAgent();
-        
-        // After that is done, execute the dotnet build command
-        var buildProcess = Process.Start("dotnet", "build");
-        await buildProcess.WaitForExitAsync();
-        if (buildProcess.ExitCode == -1)
+        if (solutionFile != null)
         {
-            logger.Error("Building failed");
-            throw new InvalidOperationException("Building failed");
+            logger.Info($"Building Solution: {solutionFile}");
+
+            // Try to execute the .bsmake process
+            var buildAgentLogic = new BuildAgentLogic(CommandLineArguments);
+            await buildAgentLogic.ExecuteBuildAgent();
+
+            // After that is done, execute the dotnet build command
+            var buildProcess = Process.Start("dotnet", "build");
+            await buildProcess.WaitForExitAsync();
+            if (buildProcess.ExitCode == -1)
+            {
+                logger.Error("Building failed");
+                throw new InvalidOperationException("Building failed");
+            }
         }
-        
-        logger.Info("Building finished");
+        else
+        {
+            // We seem to be in project context. This means, that we are looking of a .bsmake directory
+            // exists. In case, it does not exist, just give an information about that.
+            // In case, it is existing, execute the build agent
+            var buildAgentLogic = new BuildAgentLogic(CommandLineArguments);
+            var informationAboutBuildAgent = buildAgentLogic.GetInformationOfBuildAgent();
+            if (informationAboutBuildAgent.AgentType == BuildAgentType.NotExisting)
+            {
+                logger.Info("No .bsmake folder exists for project, skipping build");
+            }
+            else
+            {
+                // Try to execute the .bsmake process
+                await buildAgentLogic.ExecuteBuildAgent();
+            }
+        }
     }
 
     public async Task Clean()
@@ -89,14 +107,9 @@ public class Logic
     /// <summary>
     /// Checks that the solution file in current directory is existing
     /// </summary>
-    private string CheckThatSolutionFileIsExisting()
+    private string? CheckThatSolutionFileIsExisting()
     {
-        var result = Directory.EnumerateFiles(".").FirstOrDefault(x => x.EndsWith(".sln" )|| x.EndsWith(".slnx"));
-        if (result == null)
-        {
-            throw new InvalidOperationException("There is no solution file in current directory");
-        }
-        
-        return result;
+        return Directory.EnumerateFiles(".")
+            .FirstOrDefault(x => x.EndsWith(".sln" )|| x.EndsWith(".slnx"));
     }
 }

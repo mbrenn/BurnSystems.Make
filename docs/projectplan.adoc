@@ -57,13 +57,13 @@ The following topics are required to be clarified:
 
 * [x] Create a library solution (bsmake itself)
 * [x] Create a dummy project solution with two projects (.dll + .exe)
-* [ ] Add the '.bsmake'-directories in which the 'build.cs' is stored on solution-level. It shall just contain a Console-Writing output and the creation of an intermediate file called 'readme.txt' with just a simple file
-* [ ] Implement check is a .bsmake-directory exists on solution-level
-* [ ] If yes, perform a call of msbuild only if the created binary is older than the last modification date of build.cs. 
-* [ ] Try to figure out how these files are avoided to be compiled inside the host projects.
-* [ ] Try to figure out how the slimmest solution could look like for the _build/Build.cs configuration
-* [ ] Implement the library solution, 
-** [ ] that a simple call of bsmake on solution-level calls MSBuild on the solution
+* [x] Add the '.bsmake'-directories in which the 'build.cs' is stored on solution-level. It shall just contain a Console-Writing output and the creation of an intermediate file called 'readme.txt' with just a simple file
+* [x] Implement check is a .bsmake-directory exists on solution-level
+* [x] If yes, perform a call of msbuild only if the created binary is older than the last modification date of build.cs. 
+* [x] Try to figure out how these files are avoided to be compiled inside the host projects.
+* [x] Try to figure out how the slimmest solution could look like for the _build/Build.cs configuration
+* [x] Implement the library solution, 
+** [x] that a simple call of bsmake on solution-level calls MSBuild on the solution
 ** [ ] that bsmake is called by the Project compilation of MSBuild
 * [ ] Describe the steps to activate bsmake for a solution
 * [ ] Describe the steps to activate bsmake for a project

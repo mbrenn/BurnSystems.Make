@@ -6,4 +6,12 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <None Include=".bsmake\Build.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include=".bsmake\Build.csproj" />
+    </ItemGroup>
+
 </Project>

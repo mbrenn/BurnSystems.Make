@@ -5,43 +5,6 @@ using BurnSystems.Logging;
 namespace BSMake.Library;
 
 /// <summary>
-/// Defines the potential results of calling the build agent.
-/// It just describes the positive events. Negative events are reported via an exception 
-/// </summary>
-public enum BuildAgentExecutionResult
-{
-    SuccessNoBuildAgentExisting,
-    SuccessBuildAgentExecuted
-}
-
-/// <summary>
-/// Stores the information about the created build agent. 
-/// </summary>
-public class BuildAgentInformation
-{
-    /// <summary>
-    /// Defines the type of the build agent
-    /// </summary>
-    public BuildAgentType AgentType { get; init; }
-
-    /// <summary>
-    /// Stores the name of the output assembly.
-    /// This information is used to call the right assembly
-    /// </summary>
-    public string OutputAssemblyName { get; init; } = string.Empty;
-}
-
-/// <summary>
-/// Defines the potential types of a buildagent, including a non-existent one
-/// </summary>
-public enum BuildAgentType
-{
-    NotExisting,
-    Executable,
-    Library
-}
-
-/// <summary>
 /// This binary build logic is responsible from sequence to request the execution of the build agent down to
 /// actually executing the build agent.
 /// It takes care that the build agent is compiled or a cached version is used,
@@ -129,15 +92,16 @@ public class BuildAgentLogic(CommandLineArguments arguments)
     {
         // Gets the .csproj file, if existing
         var projectPath = Path.Combine(Environment.CurrentDirectory, BuildAgentDir);
+        if (!Directory.Exists(projectPath))
+        {
+            return BuildAgentInformation.NotExisting;
+        }
 
         var csProjs = Directory.EnumerateFiles(projectPath, "*.csproj").ToList();
         switch (csProjs.Count)
         {
             case 0:
-                return new BuildAgentInformation
-                {
-                    AgentType = BuildAgentType.NotExisting
-                };
+                return BuildAgentInformation.NotExisting;
             case 1:
                 break;
             case 2:
@@ -166,10 +130,7 @@ public class BuildAgentLogic(CommandLineArguments arguments)
         // Per default library
         if (outputType == null)
         {
-            return new BuildAgentInformation
-            {
-                AgentType = BuildAgentType.NotExisting
-            };
+            return BuildAgentInformation.NotExisting;
         }
 
         // Otherwise, evaluate
