@@ -218,6 +218,11 @@ public class BuildAgentLogic(CommandLineArguments arguments)
         var exeFile = exeFiles.Single();
         var process = Process.Start(exeFile);
         await process.WaitForExitAsync();
+
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException($"{exeFile} has return non-zero value: {process.ExitCode}");
+        }
     }
 
     /// <summary>
