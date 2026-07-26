@@ -25,6 +25,14 @@ That means, it is assumed that _BurnSystems.Make_ gets called by the user or bui
 
 === Project-Context
 
+==== Adding a Build Agent
+
+The Build Agent can be added by creating a .bsmake directory and implementing the Build Agent within that directory.
+
+A description how potential Build Agent can look like is defined in <<build-agent-definition>>
+
+==== Enabling the Build Agent
+
 Within project-context, it is expected that _BurnSystems.Make_ is called before target 'CoreCompile' by MSBuild.
 
 This can be easily achieved by adding the following target to the Project-Configuration:
@@ -85,7 +93,29 @@ The calls between_BurnSystems.Make_ will be performed as the following:
 
 This example is also available under https://github.com/mbrenn/BurnSystems.Make/tree/main/src/Example
 
-Project
+[[build-agent-definition]]
+=== Build Agent Definition
+A implementation of Build Agent usually resides in the .bsmake directory relative to the corresponding solution or project.
+
+At the moment, there is only one type of Build Agent supported: 
+
+. Executable
+
+Hint: You can exclude the *.cs files from the hosting project by removing the files via 'None' in the Project.csproj:
+
+ <ItemGroup>
+    <None Include=".bsmake\Build.cs" />
+ </ItemGroup>
+
+==== Build Agent as Executable
+
+The Build Agent as Executable is created as a normal .Net Console Project. It minimally consists of a .csproj-file and the Source file. 
+One example is available at link:https://github.com/mbrenn/BurnSystems.Make/tree/main/src/Example/Example.Library/.bsmake[Example Build Library].
+
+The 'OutputType' of the Project must be Exe. 
+
+The project is built via standard MSBuild procedure and called via 'StartProcess'. The return code is evaluate upon failure
+
 [[build-and-call-of-the-build-agent]]
 === Build and call of the Build Agent
 
