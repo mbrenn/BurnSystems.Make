@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="BSMake/BSMake.csproj" />
+  <Project Path="BurnSystems.Make.BuildAgent/BurnSystems.Make.BuildAgent.csproj" />
   <Project Path="BurnSystems.Make.Test/BurnSystems.Make.Test.csproj" />
   <Project Path="BurnSystems.Make/BurnSystems.Make.csproj" />
 </Solution>

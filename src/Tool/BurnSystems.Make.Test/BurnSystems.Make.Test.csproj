@@ -16,6 +16,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\BurnSystems.Make.BuildAgent\BurnSystems.Make.BuildAgent.csproj" />
       <ProjectReference Include="..\BurnSystems.Make\BurnSystems.Make.csproj" />
     </ItemGroup>
 
