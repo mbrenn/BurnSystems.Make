@@ -157,9 +157,11 @@ public class BuildAgentLogic(CommandLineArguments arguments)
         // Figures out age of the build agent itself
         if (Directory.Exists(BuildAgentDirBinary))
         {
-            var exeFiles = Directory.GetFiles(BuildAgentDirBinary, buildAgentInformation.OutputAssemblyName, SearchOption.AllDirectories);
+            var exeFiles = Directory.GetFiles(BuildAgentDirBinary, buildAgentInformation.OutputAssemblyName, SearchOption.AllDirectories)
+                .Union(Directory.GetFiles(BuildAgentDirBinary, buildAgentInformation.OutputAssemblyName + ".exe", SearchOption.AllDirectories))
+                .ToArray();
             var earliestExeFile = exeFiles.Length > 0 ? exeFiles.Select(File.GetLastWriteTime).Min() : DateTime.MinValue;
-            Logger.Info($"Earliest .exe file is {earliestExeFile}");
+            Logger.Info($"Earliest .exe ({buildAgentInformation.OutputAssemblyName}) file is {earliestExeFile}");
 
             // Figures out latest age of all .cs files stored recursively
             var csFiles = Directory.GetFiles(BuildAgentDir, "*.cs", SearchOption.AllDirectories);
