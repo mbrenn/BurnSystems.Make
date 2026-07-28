@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics;
-using System.Runtime.InteropServices;
+using BurnSystems.Logging;
 
 namespace BurnSystems.Make.BuildAgent;
 
@@ -18,6 +18,11 @@ public class ProcessInvokeParameter
 /// </summary>
 public static class ProcessInvoke
 {
+    /// <summary>
+    /// Stores the logger
+    /// </summary>
+    private static readonly ILogger Logger = new ClassLogger(typeof(ProcessInvoke));
+    
     /// <summary>
     /// Runs a process and returns the exit code
     /// </summary>
@@ -48,7 +53,6 @@ public static class ProcessInvoke
                     realCommand = CheckFileForExistings(directory, command);
                     if (realCommand != null)
                     {
-                        Console.WriteLine("Found: " + realCommand);
                         break;
                     }
                 }
@@ -59,6 +63,8 @@ public static class ProcessInvoke
         {
             throw new InvalidOperationException($"{parameter.Command} was not found.");
         }
+        
+        Logger.Info("Executing command: " + realCommand);
         
         var process = Process.Start(realCommand, parameter.Arguments);
         await process.WaitForExitAsync();
@@ -75,15 +81,13 @@ public static class ProcessInvoke
     {
         var result = new List<string>();
         var path = Environment.GetEnvironmentVariable("PATH");
-        Console.WriteLine($"Path: {path}");
-        if (!string.IsNullOrEmpty(path))
+        if (string.IsNullOrEmpty(path)) return result;
+        
+        var separator = new[] { EnvironmentHelper.IsUnix() ? ':' : ';' };
+        var paths = path.Split(separator, StringSplitOptions.RemoveEmptyEntries);
+        foreach (var p in paths)
         {
-            var separator = new[] { EnvironmentHelper.IsUnix() ? ':' : ';' };
-            var paths = path.Split(separator, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var p in paths)
-            {
-                result.Add(p.Trim(' ', '"', '\''));
-            }
+            result.Add(p.Trim(' ', '"', '\''));
         }
 
         return result;
@@ -100,7 +104,6 @@ public static class ProcessInvoke
         foreach (var commandFilename in GetFilenames(command))
         {
             var path = Path.Combine(directory, commandFilename);
-            Console.WriteLine($"Checking {path}...");
             if (File.Exists(path))
             {
                 return path;
