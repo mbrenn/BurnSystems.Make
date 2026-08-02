@@ -11,6 +11,7 @@ pipeline {
             {
                 // Shell build step
                 sh 'cd src/Tool'
+                sh 'echo "$PWD"'
                 dotnetBuild project: 'BurnSystems.Make.Tool.slnx', workDirectory: '.'
                 sh 'cd ../..'
             }
