@@ -9,6 +9,7 @@ pipeline {
         {
             steps 
             {
+                sh 'echo "$PWD"'
                 dotnetBuild project: 'src/Tool/BurnSystems.Make.Tool.slnx', workDirectory: './src/Tool/'
             }
         }
