@@ -209,11 +209,11 @@ public class BuildAgentLogic(CommandLineArguments arguments)
         switch (exeFiles.Length)
         {
             case 0: 
-                throw new InvalidOperationException($"No executable found in bin directory: {BuildAgentDirBinary}");
+                throw new InvalidOperationException($"No executable found in bin directory: {BuildAgentDirBinary} for {buildAgentInformation.OutputAssemblyName}");
             case 1:
                 break;
             default:
-                throw new InvalidOperationException($"Multiple executables found in bin directory: {BuildAgentDirBinary}");
+                throw new InvalidOperationException($"Multiple executables found in bin directory: {BuildAgentDirBinary} for {buildAgentInformation.OutputAssemblyName}");
         }
         
         Logger.Info($"Calling executable: {exeFiles.Single()}");
