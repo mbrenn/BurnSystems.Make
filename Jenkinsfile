@@ -11,7 +11,7 @@ pipeline {
             {
                 // Shell build step
                 sh 'cd src/Tool'
-                dotnetBuild project: 'BurnSystems Make Tool.slnx', workDirectory: '.'
+                dotnetBuild project: 'BurnSystems.Make.Tool.slnx', workDirectory: '.'
                 sh 'cd ../..'
             }
         }
@@ -21,7 +21,7 @@ pipeline {
             steps
             {
                 sh 'cd src/Tool'
-                dotnetBuild configuration: 'Release', project: 'BurnSystems Make Tool.slnx', workDirectory: '.'
+                dotnetBuild configuration: 'Release', project: 'BurnSystems.Make.Tool.slnx', workDirectory: '.'
                 sh 'cd ../..'
             }
         }    
