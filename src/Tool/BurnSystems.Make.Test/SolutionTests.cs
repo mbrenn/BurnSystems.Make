@@ -20,7 +20,7 @@ public class SolutionTests
         helper.StartInExampleDirectory();
         
         // Ensure that solution file is existing
-        Assert.True(File.Exists("BurnSystems Make Example.slnx"), "Solution file does not exist.");
+        Assert.True(File.Exists("BurnSystems.Make.Example.slnx"), "Solution file does not exist.");
         
         // Remove the ".\Example.Executable\bin\Debug\net10.0\Example.Executable.exe", if existing
         if (File.Exists(BinaryPath))
@@ -77,7 +77,7 @@ public class SolutionTests
         helper.StartInExampleDirectory();
         
         // Ensure that solution file is existing
-        Assert.True(File.Exists("BurnSystems Make Example.slnx"), "Solution file does not exist.");
+        Assert.True(File.Exists("BurnSystems.Make.Example.slnx"), "Solution file does not exist.");
         
         // Ok, we may start the solution cleaning
         var commandLineArgumentsPrepare = new CommandLineArguments
