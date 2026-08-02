@@ -21,7 +21,10 @@ pipeline {
         {
             steps
             {
-                dotnetBuild configuration: 'Release', project: 'src/Tool/BurnSystems.Make.Tool.slnx', workDirectory: './src/Tool/'
+                dir('src/Tool')
+                {
+                    dotnetBuild configuration: 'Release', project: 'BurnSystems.Make.Tool.slnx', workDirectory: '.'
+                }
             }
         }    
 
@@ -29,8 +32,11 @@ pipeline {
         {
             steps
             {
-                dotnetTest logger: 'trx;LogFileName=test.trx', project: 'src/Tool/BurnSystems.Make.Test/BurnSystems.Make.Test.csproj', continueOnError: true, noBuild: true
-                mstest()
+                dir('src/Tool')
+                {
+                    dotnetTest logger: 'trx;LogFileName=test.trx', project: 'BurnSystems.Make.Test/BurnSystems.Make.Test.csproj', continueOnError: true, noBuild: true
+                    mstest()
+                }
             }
         }
 
@@ -38,8 +44,11 @@ pipeline {
         {
             steps
             {
-                dotnetTest logger: 'trx;LogFileName=test.trx', project: 'src/Tool/BurnSystems.Make.Test/BurnSystems.Make.Test.csproj', configuration: 'Release', continueOnError: true, noBuild: true
-                mstest()
+                dir('src/Tool')
+                {
+                    dotnetTest logger: 'trx;LogFileName=test.trx', project: 'BurnSystems.Make.Test/BurnSystems.Make.Test.csproj', configuration: 'Release', continueOnError: true, noBuild: true
+                    mstest()
+                }
             }
         }
     }   
