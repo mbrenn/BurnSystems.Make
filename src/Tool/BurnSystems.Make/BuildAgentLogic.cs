@@ -82,6 +82,11 @@ public class BuildAgentLogic(CommandLineArguments arguments)
         }
         
     }
+    
+    /// <summary>
+    /// Gets the absolute path of the build agent
+    /// </summary>
+    public string AbsoluteBuildAgentPath => Path.Combine(Environment.CurrentDirectory, BuildAgentDir);
 
     /// <summary>
     /// Checks, if the build agent is existing. Here, the existing of a .csproj-file within the
@@ -91,7 +96,7 @@ public class BuildAgentLogic(CommandLineArguments arguments)
     public BuildAgentInformation GetInformationOfBuildAgent()
     {
         // Gets the .csproj file, if existing
-        var projectPath = Path.Combine(Environment.CurrentDirectory, BuildAgentDir);
+        var projectPath = AbsoluteBuildAgentPath;
         if (!Directory.Exists(projectPath))
         {
             return BuildAgentInformation.NotExisting;

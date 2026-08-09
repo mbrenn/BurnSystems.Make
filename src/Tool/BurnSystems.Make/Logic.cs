@@ -12,7 +12,7 @@ public class Logic
 
     public Logic(CommandLineArguments  commandLineArguments)
     {
-        this.CommandLineArguments = commandLineArguments;
+        CommandLineArguments = commandLineArguments;
     }
 
     /// <summary>
@@ -42,6 +42,17 @@ public class Logic
 
     public async Task Build()
     {
+        // Before starting the build process, check if we have something to do.
+        // Otherwise, the logging is too polluted
+        
+        var buildAgentLogic = new BuildAgentLogic(CommandLineArguments);
+        var buildAgentInformation = buildAgentLogic.GetInformationOfBuildAgent();
+        if(buildAgentInformation.AgentType == BuildAgentType.NotExisting)
+        {
+            logger.Info($"Build agent was not found in: {buildAgentLogic.AbsoluteBuildAgentPath}");
+            return;
+        }
+        
         using var _ = new StopWatchLogger(logger, "BSMake Build");
             
         var solutionFile = CheckThatSolutionFileIsExisting();
@@ -50,7 +61,6 @@ public class Logic
             logger.Info($"Building Solution: {solutionFile}");
 
             // Try to execute the .bsmake process
-            var buildAgentLogic = new BuildAgentLogic(CommandLineArguments);
             await buildAgentLogic.ExecuteBuildAgent();
 
             // After that is done, execute the dotnet build command
@@ -67,7 +77,6 @@ public class Logic
             // We seem to be in project context. This means, that we are looking of a .bsmake directory
             // exists. In case, it does not exist, just give an information about that.
             // In case, it is existing, execute the build agent
-            var buildAgentLogic = new BuildAgentLogic(CommandLineArguments);
             var informationAboutBuildAgent = buildAgentLogic.GetInformationOfBuildAgent();
             if (informationAboutBuildAgent.AgentType == BuildAgentType.NotExisting)
             {
