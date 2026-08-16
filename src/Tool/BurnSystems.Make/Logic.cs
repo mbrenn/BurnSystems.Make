@@ -44,7 +44,6 @@ public class Logic
     {
         // Before starting the build process, check if we have something to do.
         // Otherwise, the logging is too polluted
-        
         var buildAgentLogic = new BuildAgentLogic(CommandLineArguments);
         var buildAgentInformation = buildAgentLogic.GetInformationOfBuildAgent();
         if(buildAgentInformation.AgentType == BuildAgentType.NotExisting)

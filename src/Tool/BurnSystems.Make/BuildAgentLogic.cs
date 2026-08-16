@@ -157,8 +157,6 @@ public class BuildAgentLogic(CommandLineArguments arguments)
 
     private async Task BuildBuildAgent(BuildAgentInformation buildAgentInformation)
     {
-        Logger.Info("Triggered building of agent");
-
         // Figures out age of the build agent itself
         if (Directory.Exists(BuildAgentDirBinary))
         {
