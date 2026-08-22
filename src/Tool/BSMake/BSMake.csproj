@@ -10,7 +10,7 @@
         <PackAsTool>true</PackAsTool>
         <ToolCommandName>bsmake</ToolCommandName>   
         <PackageId>BurnSystems.Make.Exe</PackageId>
-        <Version>1.0.2</Version>
+        <Version>1.0.3</Version>
         <Authors>Martin Brenn</Authors>
         <PackageOutputPath>./nupkg</PackageOutputPath>
     </PropertyGroup>
