@@ -47,8 +47,9 @@ public class FileHelperTests
     {
         CreateSourceFiles();
 
-        FileHelper.MergeFiles(CreateOptions(onlyIfModified: false));
+        var merged = FileHelper.MergeFiles(CreateOptions(onlyIfModified: false));
 
+        Assert.That(merged, Is.True);
         Assert.That(File.ReadAllText(TargetFile), Is.EqualTo("PREFIX\nFIRST\nSECOND\n"));
     }
 
@@ -59,8 +60,9 @@ public class FileHelperTests
 
         var options = CreateOptions(onlyIfModified: false);
         options.PrefixTextTarget = string.Empty;
-        FileHelper.MergeFiles(options);
+        var merged = FileHelper.MergeFiles(options);
 
+        Assert.That(merged, Is.True);
         Assert.That(File.ReadAllText(TargetFile), Is.EqualTo("FIRST\nSECOND\n"));
     }
 
@@ -72,8 +74,9 @@ public class FileHelperTests
     {
         CreateSourceFiles();
 
-        FileHelper.MergeFiles(CreateOptions(onlyIfModified: true));
+        var merged = FileHelper.MergeFiles(CreateOptions(onlyIfModified: true));
 
+        Assert.That(merged, Is.True);
         Assert.That(File.Exists(TargetFile), Is.True);
         Assert.That(File.ReadAllText(TargetFile), Is.EqualTo("PREFIX\nFIRST\nSECOND\n"));
     }
@@ -87,8 +90,9 @@ public class FileHelperTests
         CreateSourceFiles();
         CreateTargetFile(Past.AddHours(1));
 
-        FileHelper.MergeFiles(CreateOptions(onlyIfModified: true));
+        var merged = FileHelper.MergeFiles(CreateOptions(onlyIfModified: true));
 
+        Assert.That(merged, Is.False);
         Assert.That(File.ReadAllText(TargetFile), Is.EqualTo("OLD TARGET"));
         Assert.That(File.GetLastWriteTimeUtc(TargetFile), Is.EqualTo(Past.AddHours(1)));
     }
@@ -103,8 +107,9 @@ public class FileHelperTests
         CreateTargetFile(Past.AddHours(1));
         File.SetLastWriteTimeUtc(FirstFile, Past.AddHours(2));
 
-        FileHelper.MergeFiles(CreateOptions(onlyIfModified: true));
+        var merged = FileHelper.MergeFiles(CreateOptions(onlyIfModified: true));
 
+        Assert.That(merged, Is.True);
         Assert.That(File.ReadAllText(TargetFile), Is.EqualTo("PREFIX\nFIRST\nSECOND\n"));
     }
 
@@ -118,8 +123,9 @@ public class FileHelperTests
         CreateTargetFile(Past.AddHours(1));
         File.SetLastWriteTimeUtc(SecondFile, Past.AddHours(2));
 
-        FileHelper.MergeFiles(CreateOptions(onlyIfModified: true));
+        var merged = FileHelper.MergeFiles(CreateOptions(onlyIfModified: true));
 
+        Assert.That(merged, Is.True);
         Assert.That(File.ReadAllText(TargetFile), Is.EqualTo("PREFIX\nFIRST\nSECOND\n"));
     }
 
@@ -132,8 +138,9 @@ public class FileHelperTests
         CreateSourceFiles();
         CreateTargetFile(Past);
 
-        FileHelper.MergeFiles(CreateOptions(onlyIfModified: true));
+        var merged = FileHelper.MergeFiles(CreateOptions(onlyIfModified: true));
 
+        Assert.That(merged, Is.False);
         Assert.That(File.ReadAllText(TargetFile), Is.EqualTo("OLD TARGET"));
     }
 
@@ -146,8 +153,22 @@ public class FileHelperTests
         CreateSourceFiles();
         CreateTargetFile(Past.AddHours(1));
 
-        FileHelper.MergeFiles(CreateOptions(onlyIfModified: false));
+        var merged = FileHelper.MergeFiles(CreateOptions(onlyIfModified: false));
 
+        Assert.That(merged, Is.True);
+        Assert.That(File.ReadAllText(TargetFile), Is.EqualTo("PREFIX\nFIRST\nSECOND\n"));
+    }
+
+    /// <summary>
+    /// A repeated merge without any change of the source files does not write the target again
+    /// </summary>
+    [Test]
+    public void TestRepeatedMergingIsSkipped()
+    {
+        CreateSourceFiles();
+
+        Assert.That(FileHelper.MergeFiles(CreateOptions(onlyIfModified: true)), Is.True);
+        Assert.That(FileHelper.MergeFiles(CreateOptions(onlyIfModified: true)), Is.False);
         Assert.That(File.ReadAllText(TargetFile), Is.EqualTo("PREFIX\nFIRST\nSECOND\n"));
     }
 

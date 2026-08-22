@@ -11,7 +11,9 @@ public static class FileHelper
     /// Merges two files into a resulting file
     /// </summary>
     /// <param name="options">Options of the merging</param>
-    public static void MergeFiles(FileMergeOptions options)
+    /// <returns>true, if the target file has actually been written. false, if the merge has been
+    /// skipped because the target file is not outdated</returns>
+    public static bool MergeFiles(FileMergeOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
@@ -34,7 +36,7 @@ public static class FileHelper
 
         if (options.OnlyIfModified && !IsTargetOutdated(options))
         {
-            return;
+            return false;
         }
 
         var targetDirectory = Path.GetDirectoryName(Path.GetFullPath(options.TargetFile));
@@ -52,6 +54,8 @@ public static class FileHelper
 
         AppendTo(target, options.FirstFile);
         AppendTo(target, options.SecondFile);
+
+        return true;
     }
 
     /// <summary>
