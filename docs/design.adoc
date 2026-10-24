@@ -2,26 +2,35 @@
 
 == Use
 
-To use _BurnSystems.Make_, call 'bsmake [verb]'.
+To use _BurnSystems.Make_, call 'bsmake [verb] [options]'.
 
- bsmake [verb]
+ bsmake [verb] [-c|--configuration <configuration>]
 
 The following verbs are supported: 
 
 * clean: Cleans the current folder
 * build: Builds the folder
 
+The following options are supported:
+
+* -c, --configuration <configuration>: Specifies the build configuration (e.g., `Debug`, `Release`). If specified, it is forwarded to the build agent executable and to the underlying `dotnet build` / `dotnet clean` commands.
+
 BurnSystems.Make supports the execution within a solution-context and a project-context.
 The solution-context is automatically figured out by having a .sln or .slnx-file within the current directory. 
 
 === Solution-Context
 
-Within solution-context, it is assumed that_BurnSystems.Make_ calls MSBuild. Due to technical limitation of the Solution Files (.sln[x]), an external tool cannot be called from the Solution File.
+Within solution-context, it is assumed that _BurnSystems.Make_ calls MSBuild. Due to technical limitation of the Solution Files (.sln[x]), an external tool cannot be called from the Solution File.
 
 That means, it is assumed that _BurnSystems.Make_ gets called by the user or build pipeline. It will then perform the following steps: 
 
-. Check, if a Build Agent is specified for the Solution and executes it. (<<build-and-call-of-the-build-agent>>)
-. Execute 'dotnet build' to start building of the included projects.
+. Check, if a Build Agent is specified for the Solution and executes it with the given configuration (<<build-and-call-of-the-build-agent>>).
+. Execute 'dotnet build' (forwarding '-c <configuration>' if specified) to start building of the included projects.
+
+When calling 'clean', it performs the following steps:
+
+. Clean the Build Agent if specified for the Solution.
+. Execute 'dotnet clean' (forwarding '-c <configuration>' if specified).
 
 === Project-Context
 
@@ -38,14 +47,14 @@ Within project-context, it is expected that _BurnSystems.Make_ is called before 
 This can be easily achieved by adding the following target to the Project-Configuration:
 
  <Target Name="RunBSMake" BeforeTargets="CoreCompile">
-   <Exec Command="bsmake build $(MSBuildProjectDirectory)" />
+   <Exec Command="bsmake build $(MSBuildProjectDirectory) -c $(Configuration)" />
  </Target>
 
-Potential entry points are the specific .csproj-files or if you would like to get_BurnSystems.Make_ in project-context called per each project, you can add it to the 'Directory.Build.Targets' on Solution-Level.
+Potential entry points are the specific .csproj-files or if you would like to get _BurnSystems.Make_ in project-context called per each project, you can add it to the 'Directory.Build.Targets' on Solution-Level.
 
  <Project>
    <Target Name="RunBSMake" BeforeTargets="CoreCompile">
-     <Exec Command="bsmake build $(MSBuildProjectDirectory)" />
+     <Exec Command="bsmake build $(MSBuildProjectDirectory) -c $(Configuration)" />
    </Target>
  </Project>
 
@@ -114,21 +123,31 @@ One example is available at link:https://github.com/mbrenn/BurnSystems.Make/tree
 
 The 'OutputType' of the Project must be Exe. 
 
-The project is built via standard MSBuild procedure and called via 'StartProcess'. The return code is evaluate upon failure
+The project is built via standard MSBuild procedure and called via 'StartProcess'. The return code is evaluate upon failure.
+
+The Build Agent can optionally reference the `BurnSystems.Make.BuildAgent` helper library (package/assembly) which offers utilities such as:
+
+* `ProgramArguments.Parse(args)`: Parses the command-line arguments passed to the build agent executable to access properties like `Configuration` (`arguments.Configuration`).
+* `FileHelper.MergeFiles(options)`: Merges files with modification date checks (`OnlyIfModified`) and custom prefix headers, returning a boolean indicating if files were modified.
+* `DirectoryHelper.CopyFiles(...)`: Copies files matching search patterns without recursion.
+* `ProcessInvoke.Run(...)`: Runs external processes or commands with cross-platform PATH and extension resolution.
+* `EnvironmentHelper`: Utilities for operating system and architecture detection.
+
+For full API documentation and examples, see link:buildagent.adoc[Build Agent Documentation].
 
 [[build-and-call-of-the-build-agent]]
 === Build and call of the Build Agent
 
-In case_BurnSystems.Make_ is called, it looks for a .bsmake sub-directory and determines the Buildagent type. 
+In case _BurnSystems.Make_ is called, it looks for a .bsmake sub-directory and determines the Buildagent type. 
 
 * In case, it is not existing: Nothing is performed -> No specific Buildagent required
 * In case a .csproj file exists, a build agent is assumed. Currently, only 'Executable'-Buildagents are supported which are built and started
 
-The building of the Buildagent via MS Build will only be triggered in case the .cs-files within that folder have a more recent state than the executable. If the executable is up-to-date, no build is executed. 
+The building of the Buildagent via MS Build will only be triggered in case the .cs-files within that folder have a more recent state than the executable. If the executable is up-to-date, no build is executed. When building the Build Agent itself, the configuration is intentionally ignored so that the agent is not unnecessarily recompiled when only switching build configurations.
 
-After the executable is available, it is being called by _BurnSystems.Make_. The working directory is the same as where the solution-file or project-file exists. In case the Buildagent wants to write a file, it can just call File.WriteAllText().
+After the executable is available, it is being called by _BurnSystems.Make_. If a configuration was provided to _BurnSystems.Make_, `-c <configuration>` is passed as argument to the executable. The working directory is the same as where the solution-file or project-file exists. In case the Buildagent wants to write a file, it can just call File.WriteAllText().
 
-The Build Agents do not necessarily be part of the owning solution as_BurnSystems.Make_ will identify the existing via the files. 
+The Build Agents do not necessarily be part of the owning solution as _BurnSystems.Make_ will identify the existing via the files. 
 
 == Realization Design
 
@@ -140,6 +159,7 @@ The repository consists of two solutions:
 === Tool Solution
 
 * Project 'BSMake' contains the parsing for the command line and immediately calls the library
-* Project 'BSMake.Library' contains all required logic
-* Project 'BSMake.Test' contains the testing infrastructure. It also used the Example library.
+* Project 'BSMake.Library' (or 'BurnSystems.Make') contains all required orchestration logic
+* Project 'BurnSystems.Make.BuildAgent' contains helper utilities for build agents (e.g. `ProgramArguments`, `FileHelper`)
+* Project 'BSMake.Test' (or 'BurnSystems.Make.Test') contains the testing infrastructure. It also used the Example library.
 

@@ -9,6 +9,7 @@ Our primary goal is to enable developer teams to manage larger, multi-component 
 ## Key Features & Use Cases
 
 * ***Integrated Build Lifecycle:*** `bsmake` seamlessly integrates with MSBuild by running custom logic before building the solution or project.
+* ***Configuration Awareness:*** Passes the active build configuration (`Debug`, `Release`, etc.) to build agents and forwards it to underlying `dotnet build` / `dotnet clean` executions.
 * ***Incremental Builds:*** The tool minimizes unnecessary work by checking the modification times of source files and generated artifacts, only executing expensive steps (like building an internal agent) when necessary.
 * ***Cross-Platform Support:*** Designed to operate effectively in both Windows and Linux environments.
 
@@ -24,12 +25,20 @@ The most straightforward way to use `BurnSystems Make` is by installing it as a 
 
 ### Usage Commands
 
-The core functionality revolves around simple, standardized verbs:
+The core functionality revolves around simple, standardized verbs and options:
 
 * ***Build:*** Performs the complete build cycle for the current scope (solution or project).
-  * `bsmake build`
+  * `bsmake build [-c|--configuration <configuration>]`
+  * Example: `bsmake build -c Release`
 * ***Clean:*** Cleans up all generated artifacts and intermediary files from the local directory.
-  * `bsmake clean`
+  * `bsmake clean [-c|--configuration <configuration>]`
+  * Example: `bsmake clean -c Release`
+
+### Configuration Support
+
+You can pass the `-c` or `--configuration` parameter to specify the target configuration (e.g., `Debug`, `Release`):
+* In **Solution Context**, `bsmake` forwards `-c <configuration>` to the solution-level build agent and to `dotnet build` / `dotnet clean`.
+* In **Project Context**, `bsmake` forwards `-c <configuration>` to the project's build agent executable.
 
 ### Context-Specific Execution Details
 
@@ -38,16 +47,27 @@ The behavior of `bsmake` depends on where it is called:
 #### Solution Context (Calling in a Directory containing `.sln`/`.slnx`)
 When executing `bsmake build` in a solution root, the tool performs a multi-step orchestration process:
 
-1. Checks and builds any necessary "Build Agents" (e.g., external executables).
-2. Calls `dotnet build` on the entire solution file, allowing MSBuild to manage dependency order across all projects.
+1. Checks and builds any necessary "Build Agents" (e.g., external executables), passing the specified configuration (`-c <configuration>`) upon execution.
+2. Calls `dotnet build` (with `-c <configuration>` if specified) on the entire solution file, allowing MSBuild to manage dependency order across all projects.
 
 #### Project Context (Calling within a single project directory)
 When executing `bsmake build` inside a specific project folder:
 
-1. Checks and builds any necessary "Build Agents" (e.g., external executables).
+1. Checks, builds, and executes any necessary "Build Agents" (passing `-c <configuration>` if provided).
 
-It is assumed that bsmake is called by MSBuild on project-level before targetting 'CoreCompile'. This can be achieved by adding the following target in .csproj or Directory.Build.targets file (more information in [Design Specification](src/design.adoc)).
+It is assumed that bsmake is called by MSBuild on project-level before targetting 'CoreCompile'. This can be achieved by adding the following target in .csproj or Directory.Build.targets file (more information in [Design Specification](docs/design.adoc)):
 
     <Target Name="RunBSMake" BeforeTargets="CoreCompile">
-      <Exec Command="bsmake build $(MSBuildProjectDirectory)" />
+      <Exec Command="bsmake build $(MSBuildProjectDirectory) -c $(Configuration)" />
     </Target>
+
+### Build Agent Helper Library (`BurnSystems.Make.BuildAgent`)
+
+Build agents can reference the `BurnSystems.Make.BuildAgent` package/assembly which provides utility classes:
+* `ProgramArguments.Parse(args)`: Parses command-line arguments to easily retrieve the active configuration via `arguments.Configuration`.
+* `FileHelper.MergeFiles(options)`: Merges files with modification date checking (`OnlyIfModified`) and custom header prefixes, returning `true` if files were updated.
+* `DirectoryHelper.CopyFiles(...)`: Copies files matching search patterns without recursion.
+* `ProcessInvoke.Run(...)`: Runs external processes or commands with cross-platform PATH and extension resolution.
+* `EnvironmentHelper`: Utilities for operating system and architecture detection.
+
+Detailed method documentation and code examples are available in [Build Agent Documentation](docs/buildagent.adoc).

@@ -8,3 +8,7 @@ cd ../src/Tool/BSMake
 dotnet nuget push nupkg/BurnSystems.Make.Exe.1.0.5.nupkg --source https://api.nuget.org/v3/index.json --api-key {key}
 
 cd ../../../scripts
+
+cd ../src/Tool/BurnSystems.BuildAgent
+
+dotnet nuget push nupkg/BurnSystems.Make.BuildAgent.1.0.5.nupkg --source https://api.nuget.org/v3/index.json --api-key {key}
