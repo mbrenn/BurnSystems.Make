@@ -10,3 +10,4 @@ projectSettingsUpdater.xml
 .idea/
 *DotSetting*
 .vs/
+/src/Example/Example.Library/Test.txt
