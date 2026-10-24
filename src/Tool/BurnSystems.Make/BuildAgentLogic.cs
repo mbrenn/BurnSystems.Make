@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 using System.Xml.Linq;
 using BurnSystems.Logging;
 
@@ -26,11 +27,6 @@ public class BuildAgentLogic(CommandLineArguments arguments)
     /// Stores the logger used to log messages
     /// </summary>
     private static readonly ILogger Logger = new ClassLogger(typeof(BuildAgentLogic));
-    
-    /// <summary>
-    /// Stores the commandlinearguments being used to describe the current configuration
-    /// </summary>
-    private readonly CommandLineArguments _arguments = arguments;
 
     /// <summary>
     /// This is the main entry point which is called to start the full process from
@@ -39,7 +35,7 @@ public class BuildAgentLogic(CommandLineArguments arguments)
     public async Task<BuildAgentExecutionResult> ExecuteBuildAgent()
     {
         var buildAgentInformation = GetInformationOfBuildAgent();
-        Logger.Info($"Type of build agent is {buildAgentInformation}");
+        Logger.Info($"Type of build agent is {buildAgentInformation.AgentType}");
         
         switch (buildAgentInformation.AgentType)
         {
@@ -64,7 +60,7 @@ public class BuildAgentLogic(CommandLineArguments arguments)
     public async Task<BuildAgentExecutionResult> CleanBuildAgent()
     {
         var typeOfBuildAgent = GetInformationOfBuildAgent();
-        Logger.Info($"Type of build agent is {typeOfBuildAgent}");
+        Logger.Info($"Type of build agent is {typeOfBuildAgent.AgentType}");
 
         switch (typeOfBuildAgent.AgentType)
         {
@@ -164,16 +160,15 @@ public class BuildAgentLogic(CommandLineArguments arguments)
                 .Union(Directory.GetFiles(BuildAgentDirBinary, buildAgentInformation.OutputAssemblyName + ".exe", SearchOption.AllDirectories))
                 .ToArray();
             var earliestExeFile = exeFiles.Length > 0 ? exeFiles.Select(File.GetLastWriteTime).Min() : DateTime.MinValue;
-            Logger.Info($"Earliest .exe ({buildAgentInformation.OutputAssemblyName}) file is {earliestExeFile}");
 
             // Figures out latest age of all .cs files stored recursively
             var csFiles = Directory.GetFiles(BuildAgentDir, "*.cs", SearchOption.AllDirectories);
             var latestCsFile =  csFiles.Length > 0 ? csFiles.Select(File.GetLastWriteTime).Max() : DateTime.MaxValue;
-            Logger.Info($"Latest .cs file is {latestCsFile}");
+            Logger.Info($"Earliest .exe ({buildAgentInformation.OutputAssemblyName}) file is {earliestExeFile} with latest .cs file is {latestCsFile}");
 
             if (earliestExeFile >= latestCsFile && earliestExeFile != DateTime.MinValue)
             {
-                Logger.Info("Build agent is up to date, skipping");
+                Logger.Info("Build agent is up to date, skipping build");
                 return;
             }
         }
@@ -182,6 +177,9 @@ public class BuildAgentLogic(CommandLineArguments arguments)
         var oldCurrentDirectory = Environment.CurrentDirectory;
         Environment.CurrentDirectory = Path.Combine(Environment.CurrentDirectory, BuildAgentDir);
 
+        // We are ignoring by purpose the configuration of the parent build
+        // to avoid multiple builds in case the user just changes the configuration
+        // The runtime is required to take care of current build-configuration
         var process = Process.Start("dotnet", "build");
         await process.WaitForExitAsync();
 
@@ -219,9 +217,19 @@ public class BuildAgentLogic(CommandLineArguments arguments)
                 throw new InvalidOperationException($"Multiple executables found in bin directory: {BuildAgentDirBinary} for {buildAgentInformation.OutputAssemblyName}");
         }
         
-        Logger.Info($"Calling executable: {exeFiles.Single()}");
         var exeFile = exeFiles.Single();
-        var process = Process.Start(exeFile);
+
+        // Creates the arguments for the call
+        var processArguments = new List<string>();
+        if (!string.IsNullOrEmpty(arguments.Configuration))
+        {
+            processArguments.Add("-c");
+            processArguments.Add(arguments.Configuration);
+        }
+
+        Logger.Info($"Calling executable: {exeFiles.Single()} with {string.Join(" ", processArguments)}");
+
+        var process = Process.Start(exeFile, processArguments);
         await process.WaitForExitAsync();
 
         if (process.ExitCode != 0)

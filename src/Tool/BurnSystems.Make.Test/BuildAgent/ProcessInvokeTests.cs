@@ -28,7 +28,7 @@ public class ProcessInvokeTests
             Assert.Fail("Should have thrown an exception");
             Assert.That(exitCode, Is.Not.EqualTo(0));
         }
-        catch (Exception e)
+        catch (Exception)
         {   
             Assert.True(true, "Exception should have been thrown");
         }

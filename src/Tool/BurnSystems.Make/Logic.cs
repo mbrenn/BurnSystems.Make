@@ -48,7 +48,7 @@ public class Logic
         var buildAgentInformation = buildAgentLogic.GetInformationOfBuildAgent();
         if(buildAgentInformation.AgentType == BuildAgentType.NotExisting)
         {
-            logger.Info($"Build agent was not found in: {buildAgentLogic.AbsoluteBuildAgentPath}");
+            logger.Info($"No Build Agent defined in '{buildAgentLogic.AbsoluteBuildAgentPath}'");
             return;
         }
         
@@ -63,7 +63,17 @@ public class Logic
             await buildAgentLogic.ExecuteBuildAgent();
 
             // After that is done, execute the dotnet build command
-            var buildProcess = Process.Start("dotnet", "build");
+
+            // Creates the arguments for the call
+            var processArguments = new List<string> { "build" };
+
+            if (!string.IsNullOrEmpty(CommandLineArguments.Configuration))
+            {
+                processArguments.Add("-c");
+                processArguments.Add(CommandLineArguments.Configuration);
+            }
+
+            var buildProcess = Process.Start("dotnet", processArguments);
             await buildProcess.WaitForExitAsync();
             if (buildProcess.ExitCode == -1)
             {
@@ -101,7 +111,15 @@ public class Logic
         await buildAgentLogic.CleanBuildAgent();
         
         // Call the MSBuild clean routine
-        var cleanProcess = Process.Start("dotnet", "clean");
+        var processArguments = new List<string> { "clean" };
+
+        if (!string.IsNullOrEmpty(CommandLineArguments.Configuration))
+        {
+            processArguments.Add("-c");
+            processArguments.Add(CommandLineArguments.Configuration);
+        }
+
+        var cleanProcess = Process.Start("dotnet", processArguments);
         await cleanProcess.WaitForExitAsync();
         if (cleanProcess.ExitCode == -1)
         {

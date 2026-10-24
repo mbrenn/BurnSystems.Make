@@ -7,4 +7,10 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <Reference Include="BurnSystems.Make.BuildAgent">
+        <HintPath>..\..\..\Tool\BurnSystems.Make.BuildAgent\bin\Debug\net10.0\BurnSystems.Make.BuildAgent.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
 </Project>

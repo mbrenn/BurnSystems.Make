@@ -111,4 +111,38 @@ public class SolutionTests
         // Cleaning up
         helper.RestoreWorkingDirectory();
     }
+
+    [Test]
+    public async Task TestCleanOfSolutionForRelease()
+    {
+        var helper = new Helper();
+        helper.StartInExampleDirectory();
+
+        string binaryPathRelease = BinaryPath.Replace("Debug", "Release");
+
+        // Build Release
+        var commandLineArgumentsBuild = new CommandLineArguments
+        {
+            Verb = "build",
+            Configuration = "Release"
+        };
+
+        await new Logic(commandLineArgumentsBuild).Execute();
+        Assert.That(File.Exists(binaryPathRelease), "Release binary should exist after build");
+
+        // Clean Release
+        var commandLineArgumentsClean = new CommandLineArguments
+        {
+            Verb = "clean",
+            Configuration = "Release"
+        };
+
+        await new Logic(commandLineArgumentsClean).Execute();
+
+        // Check that the release binary is removed
+        Assert.That(!File.Exists(binaryPathRelease), "Release binary should be removed after clean");
+
+        // Cleaning up
+        helper.RestoreWorkingDirectory();
+    }
 }
