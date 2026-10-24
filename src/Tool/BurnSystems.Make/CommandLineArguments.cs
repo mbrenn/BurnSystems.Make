@@ -1,3 +1,5 @@
+using BurnSystems.CommandLine.ByAttributes;
+
 namespace BSMake.Library;
 
 /// <summary>
@@ -10,4 +12,10 @@ public class CommandLineArguments
     /// </summary>
     [BurnSystems.CommandLine.ByAttributes.UnnamedArgument(IsRequired = true, HelpText = "Verb, may be Build or Clean")]
     public string? Verb { get; set; }
+
+    /// <summary>
+    /// Stores the configuration under which BSMake is called
+    /// </summary>
+    [NamedArgument(IsRequired = false, ShortName = 'c', LongName = "configuration")]
+    public string? Configuration { get; set; }
 }

@@ -12,6 +12,7 @@ if (commandLineArguments == null)
 try
 {
     var logic = new Logic(commandLineArguments);
+    Console.WriteLine(commandLineArguments.Configuration ?? "No Configuration");
     await logic.Execute();
     return 0;
 }

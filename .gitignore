@@ -9,3 +9,4 @@ workspace.xml
 projectSettingsUpdater.xml
 .idea/
 *DotSetting*
+.vs/
