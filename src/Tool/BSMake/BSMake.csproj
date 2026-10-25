@@ -10,7 +10,7 @@
         <PackAsTool>true</PackAsTool>
         <ToolCommandName>bsmake</ToolCommandName>   
         <PackageId>BurnSystems.Make.Exe</PackageId>
-        <Version>1.0.5</Version>
+        <Version>1.0.6</Version>
         <Authors>Martin Brenn</Authors>
         <PackageOutputPath>./nupkg</PackageOutputPath>
     </PropertyGroup>
@@ -22,9 +22,4 @@
     <ItemGroup>
       <Folder Include="nupkg\" />
     </ItemGroup>
-
-    <ItemGroup>
-      <None Remove="nupkg\BurnSystems.Make.Exe.1.0.5.nupkg" />
-    </ItemGroup>
-
 </Project>

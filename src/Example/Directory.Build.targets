@@ -3,4 +3,7 @@
           BeforeTargets="CoreCompile">
     <Exec Command="D:\Projekte\BurnSystems.Make\src\Tool\BSMake\bin\Debug\net10.0\bsmake build $(MSBuildProjectDirectory) -c $(Configuration)" />
   </Target>
+    <Target Name="RunBSMakeClean" BeforeTargets="Clean">
+    <Exec Command="D:\Projekte\BurnSystems.Make\src\Tool\BSMake\bin\Debug\net10.0\bsmake clean $(MSBuildProjectDirectory) -c $(Configuration)" />
+  </Target>
 </Project>

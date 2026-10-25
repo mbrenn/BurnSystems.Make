@@ -221,6 +221,7 @@ public class BuildAgentLogic(CommandLineArguments arguments)
 
         // Creates the arguments for the call
         var processArguments = new List<string>();
+        processArguments.Add(arguments.Verb);
         if (!string.IsNullOrEmpty(arguments.Configuration))
         {
             processArguments.Add("-c");

@@ -104,30 +104,51 @@ public class Logic
         using var _ = new StopWatchLogger(logger, "BSMake clean");
         
         var solutionFile = CheckThatSolutionFileIsExisting();
-        logger.Info($"Cleaning {solutionFile}");
-        
-        // Clean in project directory
-        var buildAgentLogic = new BuildAgentLogic(CommandLineArguments);
-        await buildAgentLogic.CleanBuildAgent();
-        
-        // Call the MSBuild clean routine
-        var processArguments = new List<string> { "clean" };
-
-        if (!string.IsNullOrEmpty(CommandLineArguments.Configuration))
+        if (solutionFile != null)
         {
-            processArguments.Add("-c");
-            processArguments.Add(CommandLineArguments.Configuration);
-        }
+            logger.Info($"Cleaning {solutionFile}");
 
-        var cleanProcess = Process.Start("dotnet", processArguments);
-        await cleanProcess.WaitForExitAsync();
-        if (cleanProcess.ExitCode == -1)
-        {
-            logger.Error("Cleaning failed");
-            throw new InvalidOperationException("Cleaning failed");
+            // Clean in project directory
+            var buildAgentLogic = new BuildAgentLogic(CommandLineArguments);
+            await buildAgentLogic.CleanBuildAgent();
+
+            // Call the MSBuild clean routine
+            var processArguments = new List<string> { "clean" };
+
+            if (!string.IsNullOrEmpty(CommandLineArguments.Configuration))
+            {
+                processArguments.Add("-c");
+                processArguments.Add(CommandLineArguments.Configuration);
+            }
+
+            var cleanProcess = Process.Start("dotnet", processArguments);
+            await cleanProcess.WaitForExitAsync();
+            if (cleanProcess.ExitCode == -1)
+            {
+                logger.Error("Cleaning failed");
+                throw new InvalidOperationException("Cleaning failed");
+            }
+
+            logger.Info("Cleaning finished");
         }
-        
-        logger.Info("Cleaning finished");
+        else
+        {
+            var buildAgentLogic = new BuildAgentLogic(CommandLineArguments);
+
+            // We seem to be in project context. This means, that we are looking of a .bsmake directory
+            // exists. In case, it does not exist, just give an information about that.
+            // In case, it is existing, execute the build agent
+            var informationAboutBuildAgent = buildAgentLogic.GetInformationOfBuildAgent();
+            if (informationAboutBuildAgent.AgentType == BuildAgentType.NotExisting)
+            {
+                logger.Info("No .bsmake folder exists for project, skipping build");
+            }
+            else
+            {
+                // Try to execute the .bsmake process
+                await buildAgentLogic.ExecuteBuildAgent();
+            }
+        }
     }
 
     /// <summary>

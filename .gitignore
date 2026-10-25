@@ -13,3 +13,4 @@ projectSettingsUpdater.xml
 /src/Example/Example.Library/Test.txt
 /src/Example/Example.Library/Test_Debug.txt
 /src/Example/Example.Library/Test_Release.txt
+*.nupkg

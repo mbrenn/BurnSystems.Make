@@ -10,8 +10,8 @@ public class CommandLineArguments
     /// <summary>
     /// Defines the verb to be executed
     /// </summary>
-    [BurnSystems.CommandLine.ByAttributes.UnnamedArgument(IsRequired = true, HelpText = "Verb, may be Build or Clean")]
-    public string? Verb { get; set; }
+    [UnnamedArgument(IsRequired = true, HelpText = "Verb, may be Build or Clean")]
+    public string Verb { get; set; } = "build";
 
     /// <summary>
     /// Stores the configuration under which BSMake is called
