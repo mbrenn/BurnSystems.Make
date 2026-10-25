@@ -49,5 +49,32 @@ namespace BurnSystems.Make.BuildAgent
         {
             await ProcessInvoke.Run("npx", arguments);
         }
+
+        /// <summary>
+        /// Deletes the node modules path
+        /// </summary>
+        public static Task DeleteNodeModules(string path = "")
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                path = "node_modules";
+            }
+
+            if (Directory.Exists(path))
+            {
+                try
+                {
+                    Directory.Delete(path, true);
+                }
+                catch (IOException)
+                {
+                    // Sometimes node_modules is locked, try to rename it instead
+                    var tempPath = path + "_" + Guid.NewGuid();
+                    Directory.Move(path, tempPath);
+                }
+            }
+
+            return Task.CompletedTask;
+        }
     }
 }

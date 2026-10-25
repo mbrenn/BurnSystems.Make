@@ -7,6 +7,8 @@
         /// </summary>
         public string Configuration { get; internal set; } = string.Empty;
 
+        public string Verb { get; internal set; } = string.Empty;
+
         public static ProgramArguments Parse(string[] arguments)
         {
             var result = new ProgramArguments();
@@ -23,6 +25,12 @@
                 if (argument == "-c")
                 {
                     foundConfiguration = true;
+                    continue;
+                }
+
+                if (string.IsNullOrEmpty(result.Verb))
+                {
+                    result.Verb = argument;
                 }
             }
 
