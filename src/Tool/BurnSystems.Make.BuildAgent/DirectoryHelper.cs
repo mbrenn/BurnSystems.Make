@@ -14,6 +14,8 @@ public static class DirectoryHelper
     /// <param name="searchPattern">The pattern of the filename</param>
     public static void CopyFiles(string sourceDirectory, string targetDirectory, bool overwrite = true, string searchPattern = "*.*")
     {
+        Directory.CreateDirectory(targetDirectory);
+
         foreach (var sourceFile in Directory.GetFiles(sourceDirectory, searchPattern))
         {
             var filename = Path.GetFileName(sourceFile);

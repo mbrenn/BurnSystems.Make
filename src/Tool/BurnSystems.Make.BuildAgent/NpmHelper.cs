@@ -37,7 +37,11 @@ namespace BurnSystems.Make.BuildAgent
         /// <returns>The task for async operation</returns>
         public static async Task NpmInstall()
         {
-            await ProcessInvoke.Run("npm", ["install"]);
+            var exitCode = await ProcessInvoke.Run("npm", ["install"]);
+            if (exitCode != 0)
+            {
+                throw new InvalidOperationException($"Error occured during 'npm install': Exit Code = {exitCode}");
+            }
         }
 
         /// <summary>
@@ -47,7 +51,11 @@ namespace BurnSystems.Make.BuildAgent
         /// <returns>The task for async operation</returns>
        public static async Task Execute(string[] arguments)
         {
-            await ProcessInvoke.Run("npx", arguments);
+            var exitCode = await ProcessInvoke.Run("npx", arguments);
+            if (exitCode != 0)
+            {
+                throw new InvalidOperationException($"Error occured during 'npx': Exit Code = {exitCode}");
+            }
         }
 
         /// <summary>
@@ -55,26 +63,27 @@ namespace BurnSystems.Make.BuildAgent
         /// </summary>
         public static Task DeleteNodeModules(string path = "")
         {
-            if (string.IsNullOrEmpty(path))
+            return Task.Run(() =>
             {
-                path = "node_modules";
-            }
-
-            if (Directory.Exists(path))
-            {
-                try
+                if (string.IsNullOrEmpty(path))
                 {
-                    Directory.Delete(path, true);
+                    path = "node_modules";
                 }
-                catch (IOException)
-                {
-                    // Sometimes node_modules is locked, try to rename it instead
-                    var tempPath = path + "_" + Guid.NewGuid();
-                    Directory.Move(path, tempPath);
-                }
-            }
 
-            return Task.CompletedTask;
+                if (Directory.Exists(path))
+                {
+                    try
+                    {
+                        Directory.Delete(path, true);
+                    }
+                    catch (IOException)
+                    {
+                        // Sometimes node_modules is locked, try to rename it instead
+                        var tempPath = path + "_" + Guid.NewGuid();
+                        Directory.Move(path, tempPath);
+                    }
+                }
+            });
         }
     }
 }

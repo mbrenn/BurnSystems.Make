@@ -22,21 +22,36 @@ public class Logic
     
     public async Task Execute()
     {
-        if (string.IsNullOrEmpty(CommandLineArguments.Verb))
+        var currentDirectory = Environment.CurrentDirectory;
+        try
         {
-            throw new InvalidOperationException("Verb is required");
+
+
+            if (!string.IsNullOrEmpty(CommandLineArguments.DirectoryPath))
+            {
+                Environment.CurrentDirectory = CommandLineArguments.DirectoryPath;
+            }
+
+            if (string.IsNullOrEmpty(CommandLineArguments.Verb))
+            {
+                throw new InvalidOperationException("Verb is required");
+            }
+
+            switch (CommandLineArguments.Verb.ToLower())
+            {
+                case "build":
+                    await Build();
+                    return;
+                case "clean":
+                    await Clean();
+                    return;
+                default:
+                    throw new InvalidOperationException($"Invalid verb: {CommandLineArguments.Verb}");
+            }
         }
-        
-        switch (CommandLineArguments.Verb.ToLower())
+        finally
         {
-            case "build":
-                await Build();
-                return;
-            case "clean":
-                await Clean();
-                return;
-            default:
-                throw new InvalidOperationException($"Invalid verb: {CommandLineArguments.Verb}");
+            Environment.CurrentDirectory = currentDirectory;
         }
     }
 
@@ -49,7 +64,6 @@ public class Logic
         if(buildAgentInformation.AgentType == BuildAgentType.NotExisting)
         {
             logger.Info($"No Build Agent defined in '{buildAgentLogic.AbsoluteBuildAgentPath}'");
-            return;
         }
         
         using var _ = new StopWatchLogger(logger, "BSMake Build");
@@ -75,9 +89,9 @@ public class Logic
 
             var buildProcess = Process.Start("dotnet", processArguments);
             await buildProcess.WaitForExitAsync();
-            if (buildProcess.ExitCode == -1)
+            if (buildProcess.ExitCode != 0)
             {
-                logger.Error("Building failed");
+                logger.Error($"Building failed: Exit Code = {buildProcess.ExitCode}");
                 throw new InvalidOperationException("Building failed");
             }
         }
@@ -123,9 +137,9 @@ public class Logic
 
             var cleanProcess = Process.Start("dotnet", processArguments);
             await cleanProcess.WaitForExitAsync();
-            if (cleanProcess.ExitCode == -1)
+            if (cleanProcess.ExitCode != 0)
             {
-                logger.Error("Cleaning failed");
+                logger.Error($"Cleaning failed: Exit Code = {cleanProcess.ExitCode}");
                 throw new InvalidOperationException("Cleaning failed");
             }
 
@@ -141,7 +155,7 @@ public class Logic
             var informationAboutBuildAgent = buildAgentLogic.GetInformationOfBuildAgent();
             if (informationAboutBuildAgent.AgentType == BuildAgentType.NotExisting)
             {
-                logger.Info("No .bsmake folder exists for project, skipping build");
+                logger.Info("No .bsmake folder exists for project, skipping clean");
             }
             else
             {

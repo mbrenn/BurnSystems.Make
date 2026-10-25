@@ -17,7 +17,7 @@
         /// <returns>The async task</returns>
         public async Task Verb(string verb, Func<Task> asyncTask)
         {
-            if (verb == Arguments.Verb)
+            if (verb.ToLowerInvariant() == Arguments.Verb.ToLowerInvariant())
             {
                 await asyncTask();
             }

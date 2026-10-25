@@ -8,15 +8,7 @@
 
 # via 51_publish_dotnet_tool.ps1, you can upload the Packages to Nuget
 
-cd ../src/Tool/BSMake
+$ScriptDir = $PSScriptRoot
 
-dotnet pack -c Release
-# dotnet tool install --global --add-source ./nupkg BSMake
-
-cd ../../../scripts
-
-cd ../src/Tool/BurnSystems.Make.BuildAgent
-
-dotnet pack -c Release
-
-cd ../../../scripts
+dotnet pack (Join-Path $ScriptDir "../src/Tool/BSMake/BSMake.csproj") -c Release
+dotnet pack (Join-Path $ScriptDir "../src/Tool/BurnSystems.Make.BuildAgent/BurnSystems.Make.BuildAgent.csproj") -c Release

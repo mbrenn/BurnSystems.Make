@@ -19,10 +19,11 @@
                 if (foundConfiguration)
                 {
                     result.Configuration = argument;
+                    foundConfiguration = false;
                     continue;
                 }
 
-                if (argument == "-c")
+                if (argument == "-c" || argument == "--configuration")
                 {
                     foundConfiguration = true;
                     continue;

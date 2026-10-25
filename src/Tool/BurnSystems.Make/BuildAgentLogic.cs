@@ -34,7 +34,6 @@ public class BuildAgentLogic(CommandLineArguments arguments)
     public async Task<BuildAgentExecutionResult> ExecuteBuildAgent()
     {
         var buildAgentInformation = GetInformationOfBuildAgent();
-        Logger.Info($"Type of build agent is {buildAgentInformation.AgentType}");
         
         switch (buildAgentInformation.AgentType)
         {

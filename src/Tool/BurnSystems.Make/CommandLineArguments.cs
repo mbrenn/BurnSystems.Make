@@ -14,6 +14,12 @@ public class CommandLineArguments
     public string Verb { get; set; } = "build";
 
     /// <summary>
+    /// Defines the directory path in which bsmake shall be executed.
+    /// </summary>
+    [UnnamedArgument(IsRequired = false, HelpText = "The directory path in which bsmake shall be executed. If not set, the current directory will be used.")]
+    public string DirectoryPath { get; set; } = string.Empty;
+
+    /// <summary>
     /// Stores the configuration under which BSMake is called
     /// </summary>
     [NamedArgument(IsRequired = false, ShortName = 'c', LongName = "configuration")]

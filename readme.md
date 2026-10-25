@@ -21,7 +21,7 @@ Further information is available in [Design Specification](docs/design.adoc).
 
 The most straightforward way to use `BurnSystems Make` is by installing it as a global `.NET CLI` tool:
 
-    dotnet tool install -g BSMake
+    dotnet tool install -g Burnsystems.Make.Exe
 
 ### Usage Commands
 
