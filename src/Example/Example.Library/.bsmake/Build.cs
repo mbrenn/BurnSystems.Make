@@ -1,5 +1,16 @@
 
-var arguments = BurnSystems.Make.BuildAgent.ProgramArguments.Parse(args);
+using BurnSystems.Make.BuildAgent;
+
+var arguments = ProgramArguments.Parse(args);
+
+if (await NpmHelper.InstallIfNotInstalled())
+{
+    Console.WriteLine("Npm Modules got installed");
+}
+else
+{
+    Console.WriteLine("Npm Modules are already installed");
+}
 
 Console.WriteLine("Calling Primegenerator in configuration of " + arguments.Configuration);
 
