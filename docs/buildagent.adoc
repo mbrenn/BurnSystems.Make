@@ -4,7 +4,7 @@
 
 == Overview
 
-`BurnSystems.Make.BuildAgent` is a helper library designed for developers authoring custom build agents for `BurnSystems.Make` (`bsmake`). When creating a build agent in a `.bsmake` directory (such as `.bsmake/Build.cs` and `.bsmake/Build.csproj`), this library provides pre-built utilities for argument parsing, file merging, directory operations, process invocation, and platform detection.
+`BurnSystems.Make.BuildAgent` is a helper library designed for developers authoring custom build agents for `BurnSystems.Make` (`bsmake`). When creating a build agent in a `.bsmake` directory (such as `.bsmake/Build.cs` and `.bsmake/Build.csproj`), this library provides pre-built utilities for verb dispatching, argument parsing, npm dependency and command execution, file merging, directory operations, process invocation, and platform detection.
 
 === Adding the Library to a Build Agent
 
@@ -21,7 +21,7 @@ To use `BurnSystems.Make.BuildAgent` in your build agent, reference the package 
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BurnSystems.Make.BuildAgent" Version="1.0.5" />
+    <PackageReference Include="BurnSystems.Make.BuildAgent" Version="1.0.6" />
   </ItemGroup>
 </Project>
 ----
@@ -32,15 +32,88 @@ All classes reside in the `BurnSystems.Make.BuildAgent` namespace.
 
 == Classes and Methods
 
-=== ProgramArguments
+=== BsMake
 
-`ProgramArguments` parses command-line arguments forwarded by `bsmake` to the build agent executable (such as `-c <configuration>`).
+`BsMake` is a helper class designed to simplify the structure of a build agent's `Build.cs`. It automatically parses the command-line arguments and dispatches asynchronous tasks based on the active verb (`build`, `clean`, etc.).
+
+==== Constructors
+
+===== `BsMake(string[] args)`
+
+Initializes a new `BsMake` instance, parsing the command-line arguments into the `Arguments` property.
+
+* *Parameters:*
+** `args` (`string[]`): The raw CLI arguments (e.g. `args`).
 
 ==== Properties
 
 [cols="1,1,2", options="header"]
 |===
 | Property | Type | Description
+| `Arguments` | `ProgramArguments` | The parsed command-line arguments, including `Verb` and `Configuration`.
+|===
+
+==== Methods
+
+===== `Verb(string verb, Func<Task> asyncTask)`
+
+Executes `asyncTask` only if the provided `verb` matches `Arguments.Verb`.
+
+* *Parameters:*
+** `verb` (`string`): The verb to match against (e.g., `Verbs.Build`, `Verbs.Clean`).
+** `asyncTask` (`Func<Task>`): Asynchronous delegate to execute if the verb matches.
+* *Returns:* `Task` representing the asynchronous operation.
+
+==== Example
+
+[source,csharp]
+----
+using BurnSystems.Make.BuildAgent;
+
+var make = new BsMake(args);
+
+await make.Verb(Verbs.Clean, async () =>
+{
+    Console.WriteLine("Cleaning temporary files...");
+    await NpmHelper.DeleteNodeModules();
+    File.Delete("Generated.cs");
+});
+
+await make.Verb(Verbs.Build, async () =>
+{
+    Console.WriteLine($"Building in configuration: {make.Arguments.Configuration}");
+    await NpmHelper.InstallIfNotInstalled();
+    File.WriteAllText("Generated.cs", "// auto-generated code");
+});
+----
+
+---
+
+=== Verbs
+
+`Verbs` provides standard string constants for common verbs supported by `BurnSystems.Make`.
+
+==== Constants
+
+[cols="1,1,2", options="header"]
+|===
+| Constant | Type | Value
+| `Verbs.Build` | `string` | `"build"`
+| `Verbs.Clean` | `string` | `"clean"`
+|===
+
+---
+
+=== ProgramArguments
+
+`ProgramArguments` parses command-line arguments forwarded by `bsmake` to the build agent executable (such as the verb and `-c <configuration>`).
+
+==== Properties
+
+[cols="1,1,2", options="header"]
+|===
+| Property | Type | Description
+| `Verb` | `string` | The active verb (e.g. `"build"`, `"clean"`). Returns `string.Empty` if no verb was provided.
 | `Configuration` | `string` | The active build configuration (e.g. `"Debug"`, `"Release"`). Returns `string.Empty` if no configuration was provided.
 |===
 
@@ -52,7 +125,7 @@ Parses the command-line argument array passed into the build agent's entry point
 
 * *Parameters:*
 ** `arguments` (`string[]`): The raw CLI arguments (e.g. `args`).
-* *Returns:* `ProgramArguments` object containing parsed configuration values.
+* *Returns:* `ProgramArguments` object containing parsed verb and configuration values.
 
 ==== Example
 
@@ -61,12 +134,68 @@ Parses the command-line argument array passed into the build agent's entry point
 using BurnSystems.Make.BuildAgent;
 
 var arguments = ProgramArguments.Parse(args);
-Console.WriteLine($"Building in configuration: {arguments.Configuration}");
+Console.WriteLine($"Verb: {arguments.Verb}, Configuration: {arguments.Configuration}");
 
-if (arguments.Configuration == "Release")
+if (arguments.Verb == Verbs.Build && arguments.Configuration == "Release")
 {
     // Perform release-specific artifact generation
 }
+----
+
+---
+
+=== NpmHelper
+
+`NpmHelper` provides utility methods to manage npm dependencies and execute npm or npx commands during build and clean steps.
+
+==== Static Methods
+
+===== `NpmHelper.InstallIfNotInstalled()`
+
+Checks if `npm install` has been performed by verifying the existence of the `node_modules` directory in the current working folder. If `node_modules` does not exist, `npm install` is executed.
+
+* *Returns:* `Task<bool>` - `true` if `npm install` was executed; `false` if `node_modules` already exists and installation was skipped.
+
+===== `NpmHelper.NpmInstall()`
+
+Executes `npm install` directly using `ProcessInvoke.Run("npm", ["install"])`.
+
+* *Returns:* `Task` representing the asynchronous operation.
+
+===== `NpmHelper.Execute(string[] arguments)`
+
+Executes `npx` with the specified arguments using `ProcessInvoke.Run("npx", arguments)`.
+
+* *Parameters:*
+** `arguments` (`string[]`): Array of command-line arguments to pass to `npx` (e.g., `["tailwindcss", "-i", "input.css", "-o", "output.css"]`).
+* *Returns:* `Task` representing the asynchronous operation.
+
+===== `NpmHelper.DeleteNodeModules(string path = "")`
+
+Deletes the `node_modules` directory (or the path specified by `path`). If deleting fails due to an `IOException` (e.g. file lock), it attempts to rename the directory to a temporary path with a unique GUID suffix (`<path>_<guid>`).
+
+* *Parameters:*
+** `path` (`string`, optional): Path to the node modules directory. Defaults to `"node_modules"`.
+* *Returns:* `Task` representing the operation.
+
+==== Example
+
+[source,csharp]
+----
+using BurnSystems.Make.BuildAgent;
+
+// 1. Ensure npm dependencies are installed before building assets
+bool installed = await NpmHelper.InstallIfNotInstalled();
+if (installed)
+{
+    Console.WriteLine("Installed fresh npm packages.");
+}
+
+// 2. Execute a build tool via npx
+await NpmHelper.Execute(["tailwind", "-i", "Styles/app.css", "-o", "wwwroot/app.css"]);
+
+// 3. Clean up node_modules during clean verb
+await NpmHelper.DeleteNodeModules();
 ----
 
 ---
@@ -144,14 +273,29 @@ Copies files matching `searchPattern` from `sourceDirectory` to `targetDirectory
 ** `overwrite` (`bool`, default: `true`): Whether existing destination files should be overwritten.
 ** `searchPattern` (`string`, default: `"*.*"`): Search pattern filter for matching files (e.g., `"*.json"`, `"*.dll"`).
 
+===== `DirectoryHelper.CopyFilesRecursively(string sourceDirectory, string targetDirectory, bool overwrite = true, string searchPattern = "*")`
+
+Copies files matching `searchPattern` from `sourceDirectory` to `targetDirectory` recursively, preserving directory hierarchy and creating target subdirectories as needed.
+
+* *Parameters:*
+** `sourceDirectory` (`string`): The directory from which files are copied.
+** `targetDirectory` (`string`): The directory to which files are copied.
+** `overwrite` (`bool`, default: `true`): Whether existing destination files should be overwritten.
+** `searchPattern` (`string`, default: `"*"`): Search pattern filter for matching file names.
+* *Exceptions:*
+** `InvalidOperationException`: Thrown if a target file has no parent directory.
+
 ==== Example
 
 [source,csharp]
 ----
 using BurnSystems.Make.BuildAgent;
 
-// Copy all JSON configuration files from assets into the build output
+// Copy all JSON configuration files from assets into the build output (non-recursive)
 DirectoryHelper.CopyFiles("Assets/Config", "bin/Config", overwrite: true, searchPattern: "*.json");
+
+// Recursively copy all static web assets preserving folder structure
+DirectoryHelper.CopyFilesRecursively("src/wwwroot", "dist/wwwroot", overwrite: true);
 ----
 
 ---
@@ -280,35 +424,53 @@ Below is a complete `.bsmake/Build.cs` example showing how these helper utilitie
 ----
 using BurnSystems.Make.BuildAgent;
 
-// 1. Parse configuration from arguments
-var arguments = ProgramArguments.Parse(args);
-Console.WriteLine($"Starting pre-build tasks for configuration: {arguments.Configuration}");
+var make = new BsMake(args);
 
-// 2. Run external generator via ProcessInvoke
-int exitCode = await ProcessInvoke.Run("dotnet", ["run", "--project", "../Tools/CodeGen"]);
-if (exitCode != 0)
+// Handle clean verb
+await make.Verb(Verbs.Clean, async () =>
 {
-    Console.Error.WriteLine("Code generation failed!");
-    Environment.Exit(exitCode);
-}
-
-// 3. Conditionally merge template files with incremental checking
-bool merged = FileHelper.MergeFiles(new FileMergeOptions
-{
-    FirstFile = "Templates/LicenseHeader.txt",
-    SecondFile = "Generated/RawOutput.cs",
-    TargetFile = "Generated/FinalOutput.cs",
-    PrefixTextTarget = "// <auto-generated />\r\n",
-    OnlyIfModified = true
+    Console.WriteLine("Cleaning build artifacts and node modules...");
+    await NpmHelper.DeleteNodeModules();
+    if (File.Exists("Generated/FinalOutput.cs"))
+    {
+        File.Delete("Generated/FinalOutput.cs");
+    }
 });
 
-if (merged)
+// Handle build verb
+await make.Verb(Verbs.Build, async () =>
 {
-    Console.WriteLine("FinalOutput.cs updated.");
-}
+    Console.WriteLine($"Starting pre-build tasks for configuration: {make.Arguments.Configuration}");
 
-// 4. Copy static assets to output
-DirectoryHelper.CopyFiles("StaticAssets", "bin/Assets", overwrite: true, searchPattern: "*.png");
+    // 1. Ensure npm dependencies are installed
+    await NpmHelper.InstallIfNotInstalled();
 
-Console.WriteLine("Build agent tasks completed successfully.");
+    // 2. Run external generator or npm/npx tooling
+    int exitCode = await ProcessInvoke.Run("dotnet", ["run", "--project", "../Tools/CodeGen"]);
+    if (exitCode != 0)
+    {
+        Console.Error.WriteLine("Code generation failed!");
+        Environment.Exit(exitCode);
+    }
+
+    // 3. Conditionally merge template files with incremental checking
+    bool merged = FileHelper.MergeFiles(new FileMergeOptions
+    {
+        FirstFile = "Templates/LicenseHeader.txt",
+        SecondFile = "Generated/RawOutput.cs",
+        TargetFile = "Generated/FinalOutput.cs",
+        PrefixTextTarget = "// <auto-generated />\r\n",
+        OnlyIfModified = true
+    });
+
+    if (merged)
+    {
+        Console.WriteLine("FinalOutput.cs updated.");
+    }
+
+    // 4. Copy static assets to output
+    DirectoryHelper.CopyFiles("StaticAssets", "bin/Assets", overwrite: true, searchPattern: "*.png");
+
+    Console.WriteLine("Build agent tasks completed successfully.");
+});
 ----

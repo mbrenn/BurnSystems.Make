@@ -51,22 +51,32 @@ When executing `bsmake build` in a solution root, the tool performs a multi-step
 2. Calls `dotnet build` (with `-c <configuration>` if specified) on the entire solution file, allowing MSBuild to manage dependency order across all projects.
 
 #### Project Context (Calling within a single project directory)
-When executing `bsmake build` inside a specific project folder:
+When executing `bsmake build` or `bsmake clean` inside a specific project folder:
 
-1. Checks, builds, and executes any necessary "Build Agents" (passing `-c <configuration>` if provided).
+1. Checks, builds, and executes any necessary "Build Agents" (passing the active verb like `build` or `clean`, and `-c <configuration>` if provided).
 
-It is assumed that bsmake is called by MSBuild on project-level before targetting 'CoreCompile'. This can be achieved by adding the following target in .csproj or Directory.Build.targets file (more information in [Design Specification](docs/design.adoc)):
+It is assumed that bsmake is called by MSBuild on project-level before targeting 'CoreCompile' (for build) and before 'Clean' (for clean). This can be achieved by adding the following targets in `.csproj` or `Directory.Build.targets` file (more information in [Design Specification](docs/design.adoc)):
 
-    <Target Name="RunBSMake" BeforeTargets="CoreCompile">
-      <Exec Command="bsmake build $(MSBuildProjectDirectory) -c $(Configuration)" />
-    </Target>
+```xml
+<Project>
+  <Target Name="RunBSMake" BeforeTargets="CoreCompile">
+    <Exec Command="bsmake build $(MSBuildProjectDirectory) -c $(Configuration)" />
+  </Target>
+  <Target Name="RunBSMakeClean" BeforeTargets="Clean">
+    <Exec Command="bsmake clean $(MSBuildProjectDirectory) -c $(Configuration)" />
+  </Target>
+</Project>
+```
 
 ### Build Agent Helper Library (`BurnSystems.Make.BuildAgent`)
 
 Build agents can reference the `BurnSystems.Make.BuildAgent` package/assembly which provides utility classes:
-* `ProgramArguments.Parse(args)`: Parses command-line arguments to easily retrieve the active configuration via `arguments.Configuration`.
+* `BsMake`: Helper class to easily dispatch async tasks based on the active verb (`make.Verb(Verbs.Build, ...)` / `make.Verb(Verbs.Clean, ...)`).
+* `Verbs`: Standard verb constants (`Verbs.Build = "build"`, `Verbs.Clean = "clean"`).
+* `ProgramArguments.Parse(args)`: Parses command-line arguments to easily retrieve the active verb via `arguments.Verb` and configuration via `arguments.Configuration`.
+* `NpmHelper`: Helper methods for npm and npx operations (`InstallIfNotInstalled`, `NpmInstall`, `Execute`, `DeleteNodeModules`).
 * `FileHelper.MergeFiles(options)`: Merges files with modification date checking (`OnlyIfModified`) and custom header prefixes, returning `true` if files were updated.
-* `DirectoryHelper.CopyFiles(...)`: Copies files matching search patterns without recursion.
+* `DirectoryHelper.CopyFiles(...)` / `DirectoryHelper.CopyFilesRecursively(...)`: Copies files matching search patterns non-recursively or recursively with subdirectories.
 * `ProcessInvoke.Run(...)`: Runs external processes or commands with cross-platform PATH and extension resolution.
 * `EnvironmentHelper`: Utilities for operating system and architecture detection.
 
