@@ -25,8 +25,6 @@ public class Logic
         var currentDirectory = Environment.CurrentDirectory;
         try
         {
-
-
             if (!string.IsNullOrEmpty(CommandLineArguments.DirectoryPath))
             {
                 Environment.CurrentDirectory = CommandLineArguments.DirectoryPath;
@@ -65,10 +63,16 @@ public class Logic
         {
             logger.Info($"No Build Agent defined in '{buildAgentLogic.AbsoluteBuildAgentPath}'");
         }
-        
-        using var _ = new StopWatchLogger(logger, "BSMake Build");
             
         var solutionFile = CheckThatSolutionFileIsExisting();
+        if (solutionFile == null && buildAgentInformation.AgentType == BuildAgentType.NotExisting)
+        {
+            // Short circuit to get rid of all the messages
+            return;
+        }
+        
+        using var _ = new StopWatchLogger(logger, "BSMake Build");
+        
         if (solutionFile != null)
         {
             logger.Info($"Building Solution: {solutionFile}");
@@ -115,16 +119,30 @@ public class Logic
 
     public async Task Clean()
     {
-        using var _ = new StopWatchLogger(logger, "BSMake clean");
-        
+        var buildAgentLogic = new BuildAgentLogic(CommandLineArguments);
+
+        var buildAgentInformation = buildAgentLogic.GetInformationOfBuildAgent();
+        if (buildAgentInformation.AgentType == BuildAgentType.NotExisting)
+        {
+            logger.Info("No .bsmake folder exists for project, skipping clean");
+        }
+
         var solutionFile = CheckThatSolutionFileIsExisting();
+
+        if (solutionFile == null && buildAgentInformation.AgentType == BuildAgentType.NotExisting)
+        {
+            // Short circuit to get rid of all the messages
+            return;
+        }
+        
+        using var _ = new StopWatchLogger(logger, "BSMake clean");
+
         if (solutionFile != null)
         {
             logger.Info($"Cleaning {solutionFile}");
 
             // Clean in project directory
-            var buildAgentLogic = new BuildAgentLogic(CommandLineArguments);
-            await buildAgentLogic.CleanBuildAgent();
+            await buildAgentLogic.ExecuteCleanAgent();
 
             // Call the MSBuild clean routine
             var processArguments = new List<string> { "clean" };
@@ -147,21 +165,14 @@ public class Logic
         }
         else
         {
-            var buildAgentLogic = new BuildAgentLogic(CommandLineArguments);
 
             // We seem to be in project context. This means, that we are looking of a .bsmake directory
             // exists. In case, it does not exist, just give an information about that.
             // In case, it is existing, execute the build agent
-            var informationAboutBuildAgent = buildAgentLogic.GetInformationOfBuildAgent();
-            if (informationAboutBuildAgent.AgentType == BuildAgentType.NotExisting)
-            {
-                logger.Info("No .bsmake folder exists for project, skipping clean");
-            }
-            else
-            {
-                // Try to execute the .bsmake process
-                await buildAgentLogic.ExecuteBuildAgent();
-            }
+
+            // Try to execute the .bsmake process
+            await buildAgentLogic.ExecuteBuildAgent();
+            await buildAgentLogic.ExecuteCleanAgent();
         }
     }
 

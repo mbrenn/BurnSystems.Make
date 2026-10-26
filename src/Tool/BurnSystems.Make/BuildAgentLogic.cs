@@ -55,10 +55,9 @@ public class BuildAgentLogic(CommandLineArguments arguments)
     /// Cleans the build agent 
     /// </summary>
     /// <returns>The result, if the action was successful</returns>
-    public async Task<BuildAgentExecutionResult> CleanBuildAgent()
+    public async Task<BuildAgentExecutionResult> ExecuteCleanAgent()
     {
         var typeOfBuildAgent = GetInformationOfBuildAgent();
-        Logger.Info($"Type of build agent is {typeOfBuildAgent.AgentType}");
 
         switch (typeOfBuildAgent.AgentType)
         {
