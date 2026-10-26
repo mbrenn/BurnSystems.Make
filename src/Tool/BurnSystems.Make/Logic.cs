@@ -55,124 +55,119 @@ public class Logic
 
     public async Task Build()
     {
-        // Before starting the build process, check if we have something to do.
-        // Otherwise, the logging is too polluted
-        var buildAgentLogic = new BuildAgentLogic(CommandLineArguments);
-        var buildAgentInformation = buildAgentLogic.GetInformationOfBuildAgent();
-        if(buildAgentInformation.AgentType == BuildAgentType.NotExisting)
-        {
-            logger.Info($"No Build Agent defined in '{buildAgentLogic.AbsoluteBuildAgentPath}'");
-        }
-            
-        var solutionFile = CheckThatSolutionFileIsExisting();
-        if (solutionFile == null && buildAgentInformation.AgentType == BuildAgentType.NotExisting)
-        {
-            // Short circuit to get rid of all the messages
-            return;
-        }
-        
-        using var _ = new StopWatchLogger(logger, "BSMake Build");
-        
-        if (solutionFile != null)
-        {
-            logger.Info($"Building Solution: {solutionFile}");
-
-            // Try to execute the .bsmake process
-            await buildAgentLogic.ExecuteBuildAgent();
-
-            // After that is done, execute the dotnet build command
-
-            // Creates the arguments for the call
-            var processArguments = new List<string> { "build" };
-
-            if (!string.IsNullOrEmpty(CommandLineArguments.Configuration))
-            {
-                processArguments.Add("-c");
-                processArguments.Add(CommandLineArguments.Configuration);
-            }
-
-            var buildProcess = Process.Start("dotnet", processArguments);
-            await buildProcess.WaitForExitAsync();
-            if (buildProcess.ExitCode != 0)
-            {
-                logger.Error($"Building failed: Exit Code = {buildProcess.ExitCode}");
-                throw new InvalidOperationException("Building failed");
-            }
-        }
-        else
-        {
-            // We seem to be in project context. This means, that we are looking of a .bsmake directory
-            // exists. In case, it does not exist, just give an information about that.
-            // In case, it is existing, execute the build agent
-            var informationAboutBuildAgent = buildAgentLogic.GetInformationOfBuildAgent();
-            if (informationAboutBuildAgent.AgentType == BuildAgentType.NotExisting)
-            {
-                logger.Info("No .bsmake folder exists for project, skipping build");
-            }
-            else
-            {
-                // Try to execute the .bsmake process
-                await buildAgentLogic.ExecuteBuildAgent();
-            }
-        }
+        await ExecuteOperation(
+            verb: "build",
+            stopwatchLabel: "BSMake Build",
+            solutionAction: "Building Solution",
+            projectNotExistingMessage: "No .bsmake folder exists for project, skipping build",
+            errorAction: "Building",
+            executeAgent: async (buildAgentLogic) => await buildAgentLogic.ExecuteBuildAgent(),
+            executeInProjectContext: async (buildAgentLogic) => await buildAgentLogic.ExecuteBuildAgent()
+        );
     }
 
     public async Task Clean()
     {
-        var buildAgentLogic = new BuildAgentLogic(CommandLineArguments);
+        await ExecuteOperation(
+            verb: "clean",
+            stopwatchLabel: "BSMake clean",
+            solutionAction: "Cleaning",
+            projectNotExistingMessage: "No .bsmake folder exists for project, skipping clean",
+            errorAction: "Cleaning",
+            executeAgent: async (buildAgentLogic) => await buildAgentLogic.ExecuteCleanAgent(),
+            executeInProjectContext: async (buildAgentLogic) =>
+            {
+                await buildAgentLogic.ExecuteBuildAgent();
+                await buildAgentLogic.ExecuteCleanAgent();
+            }
+        );
+    }
 
+    /// <summary>
+    /// Shared operation flow for Build and Clean verbs.
+    /// Creates a <see cref="BuildAgentLogic"/>, checks for solution files, and dispatches
+    /// to the appropriate agent actions depending on whether a solution or project context is detected.
+    /// </summary>
+    /// <param name="verb">The dotnet command verb (e.g., "build" or "clean").</param>
+    /// <param name="stopwatchLabel">Label used for the <see cref="StopWatchLogger"/> timing output.</param>
+    /// <param name="solutionAction">Human-readable action description logged when a solution file is found.</param>
+    /// <param name="projectNotExistingMessage">Message logged when no build agent exists in project context.</param>
+    /// <param name="errorAction">Action name used in error messages when dotnet command fails.</param>
+    /// <param name="executeAgent">Delegate invoked when a solution file is present.</param>
+    /// <param name="executeInProjectContext">Delegate invoked when no solution file is present but a build agent exists.</param>
+    private async Task ExecuteOperation(
+        string verb,
+        string stopwatchLabel,
+        string solutionAction,
+        string projectNotExistingMessage,
+        string errorAction,
+        Func<BuildAgentLogic, Task> executeAgent,
+        Func<BuildAgentLogic, Task> executeInProjectContext)
+    {
+        var buildAgentLogic = new BuildAgentLogic(CommandLineArguments);
         var buildAgentInformation = buildAgentLogic.GetInformationOfBuildAgent();
+
         if (buildAgentInformation.AgentType == BuildAgentType.NotExisting)
         {
-            logger.Info("No .bsmake folder exists for project, skipping clean");
+            logger.Info($"No Build Agent defined in '{buildAgentLogic.AbsoluteBuildAgentPath}'");
         }
 
         var solutionFile = CheckThatSolutionFileIsExisting();
 
         if (solutionFile == null && buildAgentInformation.AgentType == BuildAgentType.NotExisting)
         {
-            // Short circuit to get rid of all the messages
             return;
         }
-        
-        using var _ = new StopWatchLogger(logger, "BSMake clean");
+
+        using var _ = new StopWatchLogger(logger, stopwatchLabel);
 
         if (solutionFile != null)
         {
-            logger.Info($"Cleaning {solutionFile}");
+            logger.Info($"{solutionAction} {solutionFile}");
+            await executeAgent(buildAgentLogic);
+            await RunDotnetCommand(verb, errorAction);
 
-            // Clean in project directory
-            await buildAgentLogic.ExecuteCleanAgent();
-
-            // Call the MSBuild clean routine
-            var processArguments = new List<string> { "clean" };
-
-            if (!string.IsNullOrEmpty(CommandLineArguments.Configuration))
+            if (verb == "clean")
             {
-                processArguments.Add("-c");
-                processArguments.Add(CommandLineArguments.Configuration);
+                logger.Info("Cleaning finished");
             }
-
-            var cleanProcess = Process.Start("dotnet", processArguments);
-            await cleanProcess.WaitForExitAsync();
-            if (cleanProcess.ExitCode != 0)
-            {
-                logger.Error($"Cleaning failed: Exit Code = {cleanProcess.ExitCode}");
-                throw new InvalidOperationException("Cleaning failed");
-            }
-
-            logger.Info("Cleaning finished");
         }
         else
         {
+            var informationAboutBuildAgent = buildAgentLogic.GetInformationOfBuildAgent();
+            if (informationAboutBuildAgent.AgentType == BuildAgentType.NotExisting)
+            {
+                logger.Info(projectNotExistingMessage);
+            }
+            else
+            {
+                await executeInProjectContext(buildAgentLogic);
+            }
+        }
+    }
 
-            // We seem to be in project context. This means, that we are looking of a .bsmake directory
-            // exists. In case, it does not exist, just give an information about that.
-            // In case, it is existing, execute the build agent
+    /// <summary>
+    /// Executes a dotnet command with the specified verb and optional configuration.
+    /// Logs an error and throws if the process exits with a non-zero exit code.
+    /// </summary>
+    /// <param name="verb">The dotnet command verb (e.g., "build" or "clean").</param>
+    /// <param name="errorAction">Action name used in error and exception messages when the command fails.</param>
+    private async Task RunDotnetCommand(string verb, string errorAction)
+    {
+        var processArguments = new List<string> { verb };
 
-            // Try to execute the .bsmake process
-            await buildAgentLogic.ExecuteBuildAgent();
-            await buildAgentLogic.ExecuteCleanAgent();
+        if (!string.IsNullOrEmpty(CommandLineArguments.Configuration))
+        {
+            processArguments.Add("-c");
+            processArguments.Add(CommandLineArguments.Configuration);
+        }
+
+        var process = Process.Start("dotnet", processArguments);
+        await process.WaitForExitAsync();
+        if (process.ExitCode != 0)
+        {
+            logger.Error($"{errorAction} failed: Exit Code = {process.ExitCode}");
+            throw new InvalidOperationException($"{errorAction} failed");
         }
     }
 
